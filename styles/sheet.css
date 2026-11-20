@@ -1,0 +1,166 @@
+:root {
+  color-scheme: dark;
+  --bg: #111619; --panel: #1a2327; --control: #253239;
+  --line: #36464c; --edge: #758b92; --text: #eef3f1; --muted: #a9b7b4;
+  --gold: #d7b45a; --blue: #77b8e8; --green: #69cb99; --red: #ed6a66; --track: #303b40;
+}
+.light {
+  color-scheme: light;
+  --bg: #f2f5f4; --panel: #fff; --control: #e8efed;
+  --line: #c9d2cf; --edge: #71817c; --text: #192423; --muted: #53635f;
+  --gold: #815e00; --blue: #176b9d; --green: #147649; --red: #b52b25; --track: #d8e1de;
+}
+* { box-sizing: border-box }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui,sans-serif; font-variant-numeric: tabular-nums }
+main { width: min(100%,1160px); margin: auto; padding: 18px 16px 80px }
+h1,h2,h3,p { margin: 0 }
+h1 { font-size: 24px; line-height: 1.2 }
+h2 { font-size: 18px; line-height: 1.3 }
+h3,.actionColumn > b { font-size: 15px }
+small,.muted,.defenses { font-size: 13px; color: var(--muted) }
+button,input,select { font: inherit; color: var(--text); max-width: 100%; min-width: 0 }
+button,select,input:not([type=checkbox]) { border: 1px solid var(--edge); border-radius: 6px; background: var(--control); padding: 5px 8px; min-height: 34px }
+button,summary { cursor: pointer }
+button { font-weight: 600 }
+button:not(:disabled):hover,summary:hover { color: var(--blue) }
+button:disabled { opacity: .5; cursor: default }
+button.active,[aria-pressed=true],#applyCondition:enabled { background: var(--gold); color: var(--bg); border-color: var(--gold) }
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px }
+[hidden],.hidden { display: none !important }
+summary { font-weight: 600; padding-block: 4px }
+.row,.top,.counter,.segmented,.spellMeta,.spellResolution,.restRow,.managerMenu,.oaLine,.effectsToolbar { display: flex; align-items: center; gap: 8px }
+.top,.counter,.oaLine,.effectsToolbar { justify-content: space-between }
+.wrap,.segmented,.spellMeta,.spellResolution,.counter { flex-wrap: wrap }
+main > .top { margin-bottom: 12px }
+.panel { padding: 14px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); min-width: 0 }
+.dashboardGrid { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(0,1fr); align-items: start; gap: 16px }
+.dashboardFormHead { display: flex; align-items: center; gap: 8px }
+#formTitle { font-size: 21px }
+#formRole { margin-bottom: 4px }
+.dashboardHealth { margin-top: 10px }
+.healthLine { display: grid; grid-template-columns: 108px minmax(0,1fr); align-items: center; gap: 8px }
+.big { font-size: 23px; font-weight: 750 }
+.bar { height: 8px; border-radius: 10px; overflow: hidden; background: var(--track) }
+.bar i { height: 100%; display: block; background: var(--red) }
+.bar.temp { height: 5px }
+.bar.temp i { background: var(--gold) }
+.healthControls { margin-top: 6px }
+.hpAmount { display: inline-flex; align-items: center; gap: 6px }
+.hpAmount input { width: 4em }
+.tempCorrection,.flightCorrection,.filterOptions { font-size: 13px; color: var(--muted) }
+.saveGrid { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 6px; margin-top: 8px }
+.stat { border-top: 1px solid var(--line); padding: 4px 0; min-width: 0 }
+.stat small,.support,.choice small,.combatOption small,.warCasterNote,.inline > small { display: block }
+.stat small { font-size: 12px }
+.dashboardSaves .stat b { font-size: 14px }
+#activeStatus { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 8px; display: flex; gap: 8px; align-items: start; flex-wrap: wrap; scroll-margin-top: 90px }
+.effectsToolbar { justify-content: start; gap: 12px }
+.effectEntries,#conditionList,#conc,#effects { display: contents }
+.effectEntries details { min-width: 0; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 0 8px; overflow-wrap: anywhere }
+.effectEntries summary { min-height: 32px; line-height: 24px }
+.effectEntries summary small { margin-left: 8px; font-weight: 400 }
+.effectEntries details[open] { flex-basis: min(100%,32rem); padding-bottom: 8px }
+.effectEntries details > p { margin: 4px 0 8px }
+#conc details { border-left: 3px solid var(--blue) }
+.conditionInstance { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px }
+.combatLayout { display: grid; grid-template-columns: minmax(0,1fr) 278px; gap: 12px; align-items: start; margin-block: 12px }
+#action-economy .g3 { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px }
+.actionColumn { min-width: 0; border-top: 1px solid var(--line); padding-top: 8px; margin-top: 8px }
+.actionColumn > b { display: block; margin-bottom: 8px }
+.casterControls select,.inline select { max-width: 100%; width: 100% }
+.selectedSpellCard,.choice,.combatOption,.inline:not(.casterControls),.resurgenceCard { display: block; margin-block: 8px; padding-block: 6px; border-top: 1px solid var(--line) }
+.selectedSpellCard > *, .combatOption small,.inline > small,.choice small,.warCasterNote,.resurgenceCard .row { margin-top: 4px }
+.spellField { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 }
+.spellField input[type=number] { width: 5em }
+.levelPips,.oaMark { color: var(--gold) }
+.oaMark,.badge { font-size: 12px; margin-left: 4px }
+.oaLine { align-items: baseline; flex-wrap: wrap }
+.oaLine span:last-child { color: var(--muted) }
+.spellResolution,.conditionHint { font-weight: 600 }
+.conditionHint { display: block; color: var(--text); font-size: 13px }
+.attackRuling { display: block; text-align: left }
+.rollValue { font: inherit; border: 0; border-radius: 0; padding: 0 2px; min-height: 24px; background: transparent; text-decoration: underline dotted; text-underline-offset: 3px }
+.rollExplanation { position: fixed; inset: auto; margin: 0; max-width: min(25rem,90vw); background: var(--panel); color: var(--text); border: 1px solid var(--edge); border-radius: 6px; padding: 10px }
+.resourceRow { display: grid; grid-template-columns: minmax(60px,1fr) auto 2.2em; gap: 4px; align-items: center }
+.resourceRow > b:last-child { text-align: right }
+.pips { display: flex; gap: 0 }
+.pip { display: grid; place-items: center; width: 32px; height: 36px; background: transparent; border: 0; padding: 0 }
+.pip::before { content: ""; width: 22px; height: 22px; border: 1px solid var(--edge); border-radius: 50%; background: var(--control) }
+.pip.on::before { background: var(--gold); border-color: var(--gold) }
+.pip.success.on::before { background: var(--green); border-color: var(--green) }
+.pip.failure.on::before { background: var(--red); border-color: var(--red) }
+.danger { color: var(--red) }
+#resources .g3 > div { margin-top: 8px }
+#resources .g3 > div + div,.restRow { border-top: 1px solid var(--line); padding-top: 8px }
+.restRow,.managerMenu { margin-top: 8px }
+.flightStatus { font-weight: 600 }
+.managerMenu,.filters,.managerGroup > input { margin-block: 8px }
+.managerGroup > input { width: min(100%,32rem) }
+.filters { display: flex; flex-wrap: wrap; gap: 8px }
+.library { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,300px),1fr)); column-gap: 16px; margin-top: 8px }
+.item { padding-block: 8px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 8px }
+.item > * { min-width: 0 }
+.badge { color: var(--muted) }
+.infoBtn { min-width: 34px }
+.modal { position: fixed; inset: 0; display: grid; place-items: center; background: #0009; z-index: 40; padding: 12px }
+.modalCard,dialog { background: var(--panel); color: var(--text); border: 1px solid var(--edge); border-radius: 10px; padding: 16px; width: min(100%,36rem); max-height: 90dvh; overflow: auto }
+.modalBody { margin-top: 8px; overflow-wrap: anywhere }
+.modalBody p { margin: 8px 0 }
+dialog { margin: auto; width: min(calc(100% - 24px),32rem) }
+dialog::backdrop { background: #0009 }
+#conditionForm { display: grid; gap: 8px }
+#conditionForm label { display: grid; gap: 4px; font-size: 14px }
+#conditionChoices { display: grid; grid-template-columns: repeat(auto-fit,minmax(115px,1fr)); gap: 4px; max-height: min(32dvh,14rem); overflow: auto; padding: 4px }
+#conditionChoices button { text-align: left; font-size: 14px }
+#conditionChoices [aria-pressed=true]::before { content: "✓ " }
+#conditionChoices button[value=Custom] { order: -1 }
+#conditionPreview { color: var(--muted); font-size: 14px }
+#conditionPreview:empty { display: none }
+#conditionForm footer { position: sticky; bottom: -16px; padding-block: 8px; background: var(--panel) }
+#feedback { position: fixed; bottom: 12px; right: 12px; z-index: 25; width: max-content; max-width: calc(100% - 24px); display: flex; align-items: center; gap: 8px; border: 1px solid var(--edge); border-radius: 8px; padding: 8px 10px; background: var(--panel); box-shadow: 0 3px 18px #0004 }
+.notice { white-space: pre-line; overflow-wrap: anywhere; font-size: 14px }
+.mobileNav,.stickyState { display: none }
+@media (max-width: 1000px) {
+  .combatLayout { grid-template-columns: minmax(0,1fr) }
+  #resources .g3 { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,240px),1fr)); gap: 12px }
+  #resources .g3 > div + div { border: 0; padding: 0 }
+  .saveGrid { grid-template-columns: repeat(3,minmax(0,1fr)) }
+}
+@media (max-width: 700px) {
+  main { padding: 78px 8px 100px }
+  main > .top { margin-bottom: 8px }
+  .panel { padding: 12px }
+  .mobileNav,.stickyState { position: fixed; left: 0; right: 0; display: flex; align-items: center; background: var(--panel); border-bottom: 1px solid var(--line); z-index: 20 }
+  .mobileNav { top: 0; height: 36px }
+  .mobileNav a { flex: 1; text-align: center; padding: 7px 0; color: var(--muted); text-decoration: none; font-size: 14px }
+  .mobileNav a[aria-current] { color: var(--text); box-shadow: inset 0 -2px var(--gold) }
+  .stickyState { top: 36px; height: 32px; gap: 7px; padding: 0 8px; white-space: nowrap; font-size: 12px }
+  .stickyForm { overflow: hidden; text-overflow: ellipsis; min-width: 0; margin-right: auto }
+  .stickyState a { color: var(--blue); padding-block: 5px }
+  .sectionAnchor { scroll-margin-top: 74px }
+  .dashboardGrid { grid-template-columns: minmax(0,1fr); gap: 10px }
+  .healthControls { gap: 6px }
+  .healthControls summary { font-weight: 500 }
+  .saveGrid { margin-top: 4px }
+  .saveGrid .stat { padding: 2px 0 }
+  .stat small { line-height: 1.2 }
+  .combatLayout { margin-block: 8px; gap: 8px }
+  #action-economy .g3,#resources .g3 { grid-template-columns: minmax(0,1fr); gap: 4px }
+  .resourceRow { grid-template-columns: minmax(60px,1fr) auto 2.4em }
+  .pip { width: 36px }
+  .modalCard { max-height: 94dvh }
+}
+@media (min-width: 701px) {
+  #conditionEditor[open] { margin: 0; inset: var(--picker-top,12px) auto auto var(--picker-left,12px); max-height: min(90dvh,calc(100dvh - var(--picker-top,12px) - 8px)) }
+}
+@media (min-width: 701px) {
+  .dashboardGrid { grid-template-rows: auto 1fr; row-gap: 8px }
+  .dashboardMain { grid-row: 1 / 3 }
+  #activeStatus { grid-column: 2; align-self: start; margin-top: 0 }
+}
+@media (max-width: 700px) {
+  #activeStatus { margin-top: 0 }
+}
+.attack + .attack { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 6px }
+
+.effectEntries details:not([open]) .entryNote { display: inline-block; max-width: min(26ch,45vw); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom }
