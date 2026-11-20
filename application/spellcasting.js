@@ -6,7 +6,11 @@ function spellRestriction(name, kind) {
     return "Verbal component unavailable";
   return "";
 }
-function castPart(name, level, spend, effectChoice, selfTarget, healing) {
+function canCastAsRitual(kind, name) {
+  return kind === "turn" && RITUAL_SPELL_NAMES.has(name);
+}
+
+function castPart(name, level, spend, effectChoice, selfTarget, healing, ritual = false) {
   if (spellRestriction(name)) return false;
   let spellMetadata = SPELL_METADATA[name];
   if (!spellMetadata) return showNotice("Choose a spell.");
@@ -15,7 +19,7 @@ function castPart(name, level, spend, effectChoice, selfTarget, healing) {
   change(
     () => {
       if (spend && level) applicationState.spellSlots[level]--;
-      if (spellMetadata[1]) endConc();
+      if (ritual || spellMetadata[1]) endConc();
       if (
         ["Cure Wounds", "Healing Word"].includes(name) &&
         selfTarget &&
@@ -48,18 +52,18 @@ function castPart(name, level, spend, effectChoice, selfTarget, healing) {
       }
       syncDerivedState();
     },
-    () => castMessage(name, level, spend, selfTarget, healing)
+    () => castMessage(name, level, spend, selfTarget, healing, ritual)
   );
   return true;
 }
 
-function castFrom(kind) {
+function castFrom(kind, ritual = false) {
   let name = getElementById(kind + "Spell")?.value;
   if (!name) return showNotice("Choose a spell.");
   if (spellRestriction(name, kind)) return;
-  let level = +(
-      getElementById(kind + "Slot")?.value || SPELL_METADATA[name][0]
-    ),
+  if (ritual && !canCastAsRitual(kind, name)) return;
+  const base = SPELL_METADATA[name][0];
+  let level = ritual ? base : +(getElementById(kind + "Slot")?.value || base),
     self =
       SPELL_SELF_TARGET_MODES[name] === "only" ||
       !!getElementById(kind + "Self")?.checked,
@@ -69,10 +73,11 @@ function castFrom(kind) {
   const cast = castPart(
     name,
     level,
-    level > 0,
+    !ritual && level > 0,
     getElementById(kind + "Progressive")?.querySelector("[data-effect-choice]")?.value,
     self,
-    healing
+    healing,
+    ritual
   );
   if (cast) {
     const picker = getElementById(kind + "Spell");

@@ -514,7 +514,7 @@ const KINCAID_SPELL_CONFIGURATION = [
     "selfTargetMode": "only",
     "availableInWildShapeAsReaction": false,
     "canUpcast": false,
-    "quickText": "Action · Self, 30-ft emanation · Concentration, 1 hour. Chosen creatures nearby gain +10 Stealth and leave no tracks."
+    "quickText": "Action · Self, 30-ft emanation · Concentration, 1 hour. You and chosen creatures in the aura gain +10 Stealth and leave no tracks."
   },
   {
     "id": "plant-growth",

@@ -101,15 +101,23 @@ function exhaustionEntry() {
 }
 function conditionModifiers() {
   const form = getFormRecord(applicationState.activeFormId);
-  const roots = new Set(form ? form.grants : kincaid.grants);
-  for (const entry of applicationState.conditions)
-    if (!entry.custom) roots.add(entry.effectId);
+  const roots = new Map();
+  function addSource(id, source) {
+    if (!roots.has(id)) roots.set(id, new Set());
+    roots.get(id).add(source);
+  }
+  for (const id of (form ? form.grants : kincaid.grants) || [])
+    addSource(id, form?.name || "Dragonborn");
+  for (const entry of applicationState.conditions) {
+    if (!entry.custom)
+      addSource(entry.effectId, entry.name + (entry.note ? ` (${entry.note})` : ""));
+  }
   for (const spell of applicationState.activeEffects) {
     if (!spell.self) continue;
     const definition = getEffectDefinition(spell.n);
-    for (const id of definition?.grants || []) roots.add(id);
+    for (const id of definition?.grants || []) addSource(id, spell.n);
     const chosen = definition?.choice?.grants?.[spell.choice];
-    if (chosen) roots.add(chosen);
+    if (chosen) addSource(chosen, spell.n);
   }
   const blocked = new Set();
   const records = [];
@@ -117,12 +125,17 @@ function conditionModifiers() {
     if (!roots.has(record.id) || blocked.has(record.id)) continue;
     records.push(record);
     if (record.immunity) blocked.add(record.immunity);
-    for (const id of record.grants || []) roots.add(id);
+    for (const id of record.grants || [])
+      for (const source of roots.get(record.id)) addSource(id, source);
   }
   const names = new Set(records.map(r => r.name));
-  const sources = field => records.filter(r => r[field]).map(r => r.name);
+  const origins = record => [...roots.get(record.id)];
+  const describe = record => origins(record).map(source =>
+    source === record.name || source.startsWith(record.name + " (")
+      ? source : record.name + " from " + source);
+  const sources = field => records.filter(r => r[field]).flatMap(describe);
   return {
-    records, names, sources, blocked,
+    records, names, sources, origins, describe, blocked,
     has: field => records.some(record => record[field]),
     d20: records.reduce((sum, r) => sum + (r.d20PerLevel || 0) * (exhaustionEntry()?.level || 0), 0),
     incapacitated: records.some(record => record.incapacitated),
@@ -152,7 +165,7 @@ function defenseDisplay() {
       lines.push(({resistance:"Resistance to ", vulnerability:"Vulnerability to ", damageImmunity:"Damage immunity to "}[field]) + (values.includes("all") ? "all damage" : values.join(", ")));
   }
   lines.push(...mods.records.map(r => r.defenseNote).filter(Boolean));
-  return explainedRoll(lines.join(" · "), [...sources, ...(prone ? ["Prone"] : []), ...(invisible ? ["Invisible"] : [])]);
+  return explainedRoll(lines.join(" · "), [...new Set([...sources, ...mods.sources("prone"), ...mods.sources("unseen")])]);
 }
 function signedRoll(value) {
   return value >= 0 ? "+" + value : String(value);
@@ -164,10 +177,11 @@ function conditionHint(text) {
 // A modified value doubles as the control for its arithmetic and sources.
 function explainedRoll(label, reasons) {
   if (!reasons.length) return label;
-  return `<button type="button" class="rollValue" data-roll-reason="${reasons.join(". ").replaceAll("&", "&amp;").replaceAll('"', "&quot;")}" aria-controls="rollExplanation" aria-haspopup="dialog">${label}</button>`;
+  const reason = reasons.join(". ").replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+  return `<button type="button" class="rollValue" data-roll-reason="${reason}" aria-controls="rollExplanation" aria-haspopup="dialog">${label}</button>`;
 }
 function rollDisplay(base, kind, ability = "", skill = "", suffix = "", afterRoll = "") {
-  const {has, d20, sources, records} = conditionModifiers();
+  const {has, d20, sources, records, origins, describe} = conditionModifiers();
   const advantage = [], disadvantage = [], qualifiers = [], reasons = [];
   const passive = kind === "passive";
   const check = passive || kind === "check" || kind === "initiative";
@@ -193,7 +207,11 @@ function rollDisplay(base, kind, ability = "", skill = "", suffix = "", afterRol
     disadvantage.push(...sources("dexSaveDisadvantage"));
     if (!has("incapacitated") && Object.values(speedObj()).some(speed => speed > 0))
       advantage.push(...sources("dodge"));
-    qualifiers.push(...records.map(r => r.dexSaveNote).filter(Boolean));
+    for (const record of records) {
+      if (!record.dexSaveNote) continue;
+      qualifiers.push(record.dexSaveNote);
+      reasons.push(describe(record).join(", ") + ": " + record.dexSaveNote);
+    }
   }
   for (const effect of applicationState.activeEffects.filter(item => item.self)) {
     if ((save || check) && ability === "STR" && effect.n === "Enlarge/Reduce")
@@ -215,13 +233,12 @@ function rollDisplay(base, kind, ability = "", skill = "", suffix = "", afterRol
   if (attack && has("protectCharmer")) qualifiers.push("Cannot attack the charmer");
   const result = advantage.length && disadvantage.length ? "Advantage and Disadvantage cancel" :
     advantage.length ? "Advantage" : disadvantage.length ? "Disadvantage" : "";
-  if (d20) reasons.push(`${signedRoll(base)} − ${-d20} (Exhaustion ${exhaustionEntry().level}) = ${signedRoll(base + d20)}`);
   if (advantage.length) reasons.push("Advantage from " + advantage.join(", "));
   if (disadvantage.length) reasons.push("Disadvantage from " + disadvantage.join(", "));
   if (qualifiers.length) {
-    for (const [name, fragment] of [["Frightened", "source is visible"], ["Grappled", "grappler"], ["Invisible", "target cannot see"], ["Charmed", "charmer"], ["Blinded", "Sight-dependent"], ["Deafened", "Hearing-dependent"]]) {
+    for (const [field, fragment] of [["fearSource", "source is visible"], ["otherGrappler", "grappler"], ["unseen", "target cannot see"], ["protectCharmer", "charmer"], ["sightFails", "Sight-dependent"], ["hearingFails", "Hearing-dependent"]]) {
       const qualifier = qualifiers.find(text => text.includes(fragment));
-      if (qualifier) reasons.push(name + ": " + qualifier);
+      if (qualifier) reasons.push(sources(field).join(", ") + ": " + qualifier);
     }
   }
   if ((advantage.length || qualifiers.some(x => x.startsWith("Advantage"))) &&
@@ -230,14 +247,21 @@ function rollDisplay(base, kind, ability = "", skill = "", suffix = "", afterRol
   const passiveDelta = passive ? 5 * (Number(Boolean(advantage.length)) - Number(Boolean(disadvantage.length))) : 0;
   if (passiveDelta) reasons.push("Passive Perception " + signedRoll(passiveDelta) + " from " + result);
   let skillBonus = 0;
+  const adjustments = [];
   for (const record of records) {
     const bonus = record.skillBonus?.[skill];
     if (bonus) {
       skillBonus += bonus;
-      reasons.push(record.name + ": " + signedRoll(bonus) + " " + skill);
+      adjustments.push(`${signedRoll(bonus)} (${origins(record).join(", ")})`);
     }
   }
+  if (d20) {
+    const {level, note} = exhaustionEntry();
+    adjustments.push(`−${-d20} (Exhaustion ${level}${note ? " · " + note : ""})`);
+  }
   const total = base + d20 + skillBonus;
+  if (adjustments.length)
+    reasons.unshift(`${signedRoll(base)} ${adjustments.join(" ")} = ${signedRoll(total)}`);
   const value = passive ? String(total + passiveDelta) : signedRoll(total);
   if (attack) {
     const rulings = [];

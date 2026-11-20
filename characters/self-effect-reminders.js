@@ -6,7 +6,7 @@ const SELF_EFFECT_SUMMARIES = {
     "Your club or quarterstaff uses your spellcasting ability and the spell’s damage die.",
   Longstrider: "All your Speeds increase by 10 feet.",
   "Pass without Trace":
-    "You project the 30-foot aura and benefit while within it.",
+    "You and chosen creatures gain +10 to Dexterity (Stealth) checks and leave no tracks while in your 30-foot aura.",
   "Protection from Evil and Good":
     "You receive the spell’s protection from the listed creature types.",
   Jump: "Your jump capability is increased for the duration.",

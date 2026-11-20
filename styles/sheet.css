@@ -72,7 +72,7 @@ main > .top { margin-bottom: 12px }
 .selectedSpellCard > *, .combatOption small,.inline > small,.choice small,.warCasterNote,.resurgenceCard .row { margin-top: 4px }
 .spellField { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 }
 .spellField input[type=number] { width: 5em }
-.levelPips,.oaMark { color: var(--gold) }
+.levelPips,.oaMark,.ritualMark { color: var(--gold) }
 .oaMark,.badge { font-size: 12px; margin-left: 4px }
 .oaLine { align-items: baseline; flex-wrap: wrap }
 .oaLine span:last-child { color: var(--muted) }

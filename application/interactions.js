@@ -194,7 +194,7 @@ document.addEventListener("click", (e) => {
       () => (applicationState.draconicFlightState = "spent"),
       "Draconic Flight ended."
     );
-  if (t.dataset.cast) castFrom(t.dataset.cast);
+  if (t.dataset.cast) castFrom(t.dataset.cast, t.hasAttribute("data-ritual"));
   if (t.id === "shapeNow") transform(getElementById("turnForm").value);
   if (t.id === "leaveNow")
     change(() => {

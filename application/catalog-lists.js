@@ -160,7 +160,10 @@ function renderLibraries() {
             : always
               ? `<span class="badge">${CIRCLE_SPELLS.includes(x) ? "Always prepared · Circle" : "Always prepared · Druidic"}</span>`
               : `<button data-prep="${x}">${applicationState.preparedSpellNames.includes(x) ? "Unprepare" : "Prepare"}</button>`;
-        return `<div class="item"><div><b>${x}</b><div>${levelPips(SPELL_METADATA[x]?.[0] || 0)} <span class="muted">${isCantrip ? "Cantrip" : "Level " + SPELL_METADATA[x][0]} · ${SPELL_SCHOOLS[x] || ""}${circle ? " · always prepared" : ""}</span></div></div><div><button class="infoBtn" data-spell-info="${x}" aria-label="${x} information" title="${x} information">ⓘ</button>${button}</div></div>`;
+        const ritualMark = RITUAL_SPELL_NAMES.has(x)
+          ? ' <span class="ritualMark" role="img" aria-label="Ritual" title="Ritual">Ⓡ</span>'
+          : "";
+        return `<div class="item"><div><b>${x}</b>${ritualMark}<div>${levelPips(SPELL_METADATA[x]?.[0] || 0)} <span class="muted">${isCantrip ? "Cantrip" : "Level " + SPELL_METADATA[x][0]} · ${SPELL_SCHOOLS[x] || ""}${circle ? " · always prepared" : ""}</span></div></div><div><button class="infoBtn" data-spell-info="${x}" aria-label="${x} information" title="${x} information">ⓘ</button>${button}</div></div>`;
       })
       .join("") || '<div class="muted">No matching spells.</div>';
   for (const filters of document.querySelectorAll(".filterOptions")) {

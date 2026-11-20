@@ -47,9 +47,9 @@ function messageLines(...parts) {
     )
     .join("\n");
 }
-function castMessage(name, level, spend, selfTarget, healing) {
+function castMessage(name, level, spend, selfTarget, healing, ritual) {
   return messageLines(
-    `${name} cast.`,
+    ritual ? `${name} cast as a ritual.` : `${name} cast.`,
     selfTarget ? "Target: Kincaid." : "",
     healing ? `Healing rolled: ${healing} HP.` : "",
     spend && level ? `Level ${level} slots · ${applicationState.spellSlots[level]}/${kincaid.spellSlotMaximums[level]} remaining.` : ""

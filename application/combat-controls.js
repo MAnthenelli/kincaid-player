@@ -145,7 +145,12 @@ function progressive(kind, name) {
     html += `<label id="${kind}HealingWrap" class="spellField hidden"><span>Healing rolled</span><input type="number" id="${kind}Healing" min="0" inputmode="numeric" aria-label="Healing rolled in Hit Points"><span>HP</span></label>`;
   const restriction = spellRestriction(name, kind);
   if (restriction === "Verbal component unavailable") html += conditionHint(restriction);
-  html += `<div class="row"><button class="infoBtn" data-spell-info="${kind}" aria-label="${name} information" title="${name} information">ⓘ</button><button data-cast="${kind}" ${restriction ? "disabled" : ""}>Cast</button>${base && levels.length === 1 ? `<small>${applicationState.spellSlots[base]}/${kincaid.spellSlotMaximums[base]} level ${base} slots</small>` : ""}</div></div>`;
+  const disabled = restriction ? "disabled" : "";
+  html += `<div class="row wrap"><button class="infoBtn" data-spell-info="${kind}" aria-label="${name} information" title="${name} information">ⓘ</button><button data-cast="${kind}" ${disabled}>Cast</button>${base && levels.length === 1 ? `<small>${applicationState.spellSlots[base]}/${kincaid.spellSlotMaximums[base]} level ${base} slots</small>` : ""}`;
+  if (canCastAsRitual(kind, name)) {
+    html += `<span class="row"><button data-cast="${kind}" data-ritual aria-describedby="ritualCost" ${disabled}>Cast as ritual</button><small id="ritualCost">+10 min · No slot</small></span>`;
+  }
+  html += "</div></div>";
   box.innerHTML = html;
 }
 function formControl() {

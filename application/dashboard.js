@@ -76,6 +76,10 @@ function liveFormSkills(text) {
     return skill + " " + rollDisplay(Number(bonus), "check", skillAbilities[skill.toLowerCase()], skill.toLowerCase());
   });
 }
+function liveStealth(dexterityModifier) {
+  if (!conditionModifiers().records.some(record => record.skillBonus?.stealth)) return "";
+  return "<span>Stealth " + rollDisplay(dexterityModifier, "check", "DEX", "stealth") + "</span>";
+}
 function liveMovement() {
   return speedText() + conditionHint(conditionModifiers().movement);
 }
@@ -92,12 +96,14 @@ function renderForm() {
   if (!formRecord) {
     elements.formTitle.textContent = "Dragonborn";
     elements.formRole.textContent = `Darkvision ${kincaid.darkvision} ft` + (conditionModifiers().has("sightFails") ? " · Sight-dependent checks fail" : "");
-    elements.formData.innerHTML = `<div class="row wrap"><b>AC ${currentAC()}</b><b>${currentSize()}</b><b>Initiative ${initiativeText()}</b></div><div class="row wrap"><span>${liveMovement()}</span>${selfSenses() ? `<span>${selfSenses()}</span>` : ""}</div>`;
+    elements.formData.innerHTML = `<div class="row wrap"><b>AC ${currentAC()}</b><b>${currentSize()}</b><b>Initiative ${initiativeText()}</b></div><div class="row wrap"><span>${liveMovement()}</span>${selfSenses() ? `<span>${selfSenses()}</span>` : ""}${liveStealth(abilityModifier("dexterity"))}</div>`;
     return;
   }
   elements.formTitle.textContent = `${formRecord.name} · ${getFormRuleset(formRecord)}`;
   elements.formRole.textContent = formRecord.roleDescription;
-  elements.formData.innerHTML = `<div class="row wrap"><b>AC ${currentAC()}</b><b>${currentSize()}</b><b>Initiative ${initiativeText()}</b></div><div class="row wrap"><span>${liveMovement()}</span>${selfSenses() ? `<span>${selfSenses()}</span>` : ""}${formRecord.sensesAndSkillsDescription ? `<span>${liveFormSkills(formRecord.sensesAndSkillsDescription)}</span>` : ""}<button id="radiantToggle" class="${applicationState.radiantStrikeActive ? "active" : ""}">${applicationState.radiantStrikeActive ? "Show attacks as Radiant: ON" : "Show attacks as Radiant: OFF"}</button></div>`;
+  const skills = formRecord.sensesAndSkillsDescription || "";
+  const stealth = /\bstealth [+-]\d+/i.test(skills) ? "" : liveStealth(formRecord.abilityModifiers.dexterity);
+  elements.formData.innerHTML = `<div class="row wrap"><b>AC ${currentAC()}</b><b>${currentSize()}</b><b>Initiative ${initiativeText()}</b></div><div class="row wrap"><span>${liveMovement()}</span>${selfSenses() ? `<span>${selfSenses()}</span>` : ""}${skills ? `<span>${liveFormSkills(skills)}</span>` : ""}${stealth}<button id="radiantToggle" class="${applicationState.radiantStrikeActive ? "active" : ""}">${applicationState.radiantStrikeActive ? "Show attacks as Radiant: ON" : "Show attacks as Radiant: OFF"}</button></div>`;
 }
 function formActionText(name, detail) {
   if (!attackBonusPattern.test(detail)) return detail + (/saving throw|\bsave\b|escape DC/i.test(detail) ? harmfulTargetHint() : "");
