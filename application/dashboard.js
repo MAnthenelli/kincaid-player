@@ -44,6 +44,7 @@ function render() {
   renderSaves();
   renderLibraries();
   renderInventory();
+  renderFeats();
   const formName = applicationState.activeFormId ? getFormRecord(applicationState.activeFormId).name : "Dragonborn";
   const count = document.querySelectorAll("#activeStatus details").length;
   elements.stickyState.innerHTML = `<span class="stickyForm">${formName} · ${currentSize()}</span><b>HP ${applicationState.currentHitPoints}/${maxHP}</b>${applicationState.temporaryHitPoints ? `<span>+${applicationState.temporaryHitPoints} temp</span>` : ""}<span>AC ${currentAC()}</span><a href="#activeStatus" aria-label="View ${count} active effects">Effects ${count}</a>`;
@@ -62,7 +63,7 @@ function render() {
   }
 }
 function currentInitiative() {
-  const alertBonus = kincaid.alert ? proficiencyBonus : 0;
+  const alertBonus = hasFeat("alert") ? proficiencyBonus : 0;
   const form = getFormRecord(applicationState.activeFormId);
   if (!form) return abilityModifier("dexterity") + alertBonus;
   const creature = BASE_CREATURES[form.baseCreatureId];

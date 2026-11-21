@@ -47,14 +47,6 @@ const itemSortOrders = {
   owned: (a, b) => Number(Boolean(applicationState.inventory[b.id])) - Number(Boolean(applicationState.inventory[a.id]))
 };
 
-function inventoryButton(parent, label, description, action, id) {
-  const button = appendText(parent, "button", label);
-  button.type = "button";
-  button.setAttribute("aria-label", description);
-  button.dataset[action] = id;
-  return button;
-}
-
 function inventoryRow(root, item, carried) {
   const row = appendText(root, "div", "");
   row.className = carried ? "item inventoryItem" : "item catalogItem";
@@ -74,18 +66,18 @@ function inventoryRow(root, item, carried) {
   const controls = appendText(row, "div", "");
   controls.className = "row inventoryControls";
   const name = [item.name, itemParentName(item)].filter(Boolean).join(", ");
-  const info = inventoryButton(controls, "ⓘ", name + " information", carried ? "carriedItemInfo" : "itemInfo", item.id);
+  const info = collectionButton(controls, "ⓘ", name + " information", carried ? "carriedItemInfo" : "itemInfo", item.id);
   info.className = "infoBtn";
   info.title = info.getAttribute("aria-label");
   if (carried) {
     if (canEquipItem(item)) {
       const label = equipped ? "Unequip" : "Equip";
-      inventoryButton(controls, label, label + " " + name, "toggleEquippedItem", item.id);
+      collectionButton(controls, label, label + " " + name, "toggleEquippedItem", item.id);
     }
-    if (quantity > 1) inventoryButton(controls, "−", "Remove one " + name, "decreaseItem", item.id);
-    inventoryButton(controls, "Remove", "Remove " + name + " from inventory", "removeItem", item.id);
+    if (quantity > 1) collectionButton(controls, "−", "Remove one " + name, "decreaseItem", item.id);
+    collectionButton(controls, "Remove", "Remove " + name + " from inventory", "removeItem", item.id);
   } else {
-    inventoryButton(controls, quantity ? "Add another" : "Add", "Add one " + name + " to inventory", "addItem", item.id);
+    collectionButton(controls, quantity ? "Add another" : "Add", "Add one " + name + " to inventory", "addItem", item.id);
   }
 }
 

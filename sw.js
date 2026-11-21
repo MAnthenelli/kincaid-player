@@ -1,5 +1,5 @@
 // Use a fresh release ID whenever any runtime file changes.
-const RELEASE = "9";
+const RELEASE = "10";
 const prefix = "kincaid-sheet:" + self.registration.scope + ":";
 const cacheName = prefix + RELEASE;
 const entry = new URL("index.html", self.registration.scope).href;
@@ -13,6 +13,7 @@ const files = [
   "application/document.js",
   "characters/kincaid.js",
   "catalogs/items.js",
+  "catalogs/feats.js",
   "application/item-catalog.js",
   "catalogs/beasts-2014.js",
   "catalogs/base-creatures.js",
@@ -42,6 +43,7 @@ const files = [
   "application/resources.js",
   "application/catalog-lists.js",
   "application/inventory.js",
+  "application/feats.js",
   "application/interactions.js",
   "pwa.js",
   "icons/kincaid-512.png"

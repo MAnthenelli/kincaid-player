@@ -1,3 +1,6 @@
+const featById = new Map([...FEAT_RECORDS, ...kincaid.featReferences].map(feat => [feat.id, feat]));
+const hasFeat = id => Boolean(applicationState.feats[id]);
+
 const createFreshState = () => ({
   v: 71,
   currentHitPoints: MAX,
@@ -13,6 +16,7 @@ const createFreshState = () => ({
   preparedSpellNames: kincaid.startingPreparedSpells.filter(name => PREPARED_SPELL_OPTIONS.includes(name)).slice(0, kincaid.maximumPreparedSpells),
   inventory: { ...kincaid.startingInventory },
   equippedItemIds: [...kincaid.startingEquippedItemIds],
+  feats: Object.fromEntries(kincaid.startingFeatIds.map(id => [id, 1])),
   activeEffects: [],
   conditions: [],
   concentrationEffect: null,
@@ -102,6 +106,12 @@ function normalizeInventory(value, defaults) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return defaults;
   return Object.fromEntries(Object.entries(value).filter(([id, quantity]) =>
     itemById.has(id) && Number.isSafeInteger(quantity) && quantity > 0));
+}
+function normalizeFeats(value, defaults) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return defaults;
+  return Object.fromEntries(Object.entries(value)
+    .filter(([id, count]) => featById.has(id) && Number.isSafeInteger(count) && count > 0)
+    .map(([id, count]) => [id, featById.get(id).repeatable ? count : 1]));
 }
 function normalizeEquippedItems(ids, inventory) {
   const equipped = new Set();
@@ -216,6 +226,7 @@ function normalizeState(raw) {
     preparedSpellNames: prep,
     inventory,
     equippedItemIds,
+    feats: normalizeFeats(raw.feats, base.feats),
     conditions,
     activeEffects: effects,
     concentrationEffect: conc,
@@ -244,6 +255,7 @@ function normalizeState(raw) {
       knownCantripNames: cantrips,
       preparedSpellNames: prep,
       inventory: raw.inventory === undefined ? base.inventory : raw.inventory,
+      feats: raw.feats === undefined ? base.feats : raw.feats,
       equippedItemIds: raw.equippedItemIds === undefined ? equippedItemIds : raw.equippedItemIds,
       activeEffects: effects,
       concentrationEffect: conc,

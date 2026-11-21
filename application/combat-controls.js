@@ -90,7 +90,7 @@ function bonusSpellControl() {
   return list.length ? caster("bonus", list) : "";
 }
 function reactionSpellControl() {
-  if (!kincaid.warCaster) return "";
+  if (!hasFeat("war-caster")) return "";
   let list = (
     applicationState.activeFormId
       ? [...CIRCLE_CANTRIPS, ...CIRCLE_SPELLS]

@@ -166,7 +166,7 @@ dialog::backdrop { background: #0009 }
 .effectEntries details:not([open]) .entryNote { display: inline-block; max-width: min(26ch,45vw); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom }
 
 .managerMenu { flex-wrap: wrap }
-#carriedItemList { grid-template-columns: 1fr }
+#carriedItemList,#ownedFeatList { grid-template-columns: 1fr }
 .inventoryControls { flex: none; flex-wrap: wrap; gap: 4px }
 .inventoryControls [data-decrease-item] { min-width: 34px }
 .inventoryItem > :first-child,.catalogItem > :first-child { overflow-wrap: anywhere }
@@ -174,16 +174,16 @@ dialog::backdrop { background: #0009 }
   .inventoryItem { flex-wrap: wrap }
   .inventoryItem > :first-child { flex-basis: 100% }
 }
-#itemCatalog { width: min(calc(100% - 24px),46rem) }
-#itemCatalog[open] { display: flex; flex-direction: column }
+:is(#itemCatalog,#featCatalog) { width: min(calc(100% - 24px),46rem) }
+:is(#itemCatalog,#featCatalog)[open] { display: flex; flex-direction: column }
 .catalogFilters > input { flex-basis: 100% }
 .catalogFilters label { display: flex; align-items: center; gap: 6px; font-size: 13px }
-#itemCatalogResults { overflow: auto; overscroll-behavior: contain; padding-inline: 4px; margin-inline: -4px }
-#itemCatalogList { margin-top: 0 }
+#itemCatalogResults,#featCatalogResults { overflow: auto; overscroll-behavior: contain; padding-inline: 4px; margin-inline: -4px }
+#itemCatalogList,#featCatalogList { margin-top: 0 }
 .catalogItem .inventoryControls { flex-wrap: nowrap }
 .catalogFooter { padding-top: 8px; border-top: 1px solid var(--line) }
 .catalogFooter > .row { justify-content: space-between }
-#catalogFeedback { margin-top: 8px }
+#catalogFeedback,#featCatalogFeedback { margin-top: 8px }
 .itemDescription { overflow-x: auto }
 .itemDescription table { border-collapse: collapse }
 .itemDescription :is(th,td) { border: 1px solid var(--line); padding: 4px 6px; text-align: left }

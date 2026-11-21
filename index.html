@@ -71,7 +71,7 @@
         </section>
       </div>
       <section id="info" class="panel sectionAnchor">
-        <details><summary>Manage character</summary><div class="managerMenu" role="tablist" aria-label="Character manager"><button id="spellTab" data-manager="spells" role="tab" aria-controls="spellManager" aria-selected="false">Spell Library</button><button id="formTab" data-manager="forms" role="tab" aria-controls="formManager" aria-selected="false">Bestiary</button><button id="inventoryTab" data-manager="inventory" role="tab" aria-controls="inventoryManager" aria-selected="false">Inventory</button></div><div id="spellManager" class="managerPane hidden" role="tabpanel" aria-labelledby="spellTab"><div class="managerGroup">
+        <details><summary>Manage character</summary><div class="managerMenu" role="tablist" aria-label="Character manager"><button id="spellTab" data-manager="spells" role="tab" aria-controls="spellManager" aria-selected="false">Spell Library</button><button id="formTab" data-manager="forms" role="tab" aria-controls="formManager" aria-selected="false">Bestiary</button><button id="inventoryTab" data-manager="inventory" role="tab" aria-controls="inventoryManager" aria-selected="false">Inventory</button><button id="featTab" data-manager="feats" role="tab" aria-controls="featManager" aria-selected="false">Feats</button></div><div id="spellManager" class="managerPane hidden" role="tabpanel" aria-labelledby="spellTab"><div class="managerGroup">
               <h3>Cantrips <span id="cantripCount"></span>/<span data-character-limit="maximumSelectedCantrips"></span> · Prepared <span id="prepCount"></span>/<span data-character-limit="maximumPreparedSpells"></span></h3>
               <input id="spellSearch" placeholder="Search spells" aria-label="Search spells">
               <details class="filterOptions"><summary>Filters</summary><div class="filters"><select id="spellLevel" aria-label="All levels"><option value="">All levels</option><option value="0">Cantrip</option><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option></select><select id="spellSchool" aria-label="All schools"><option value="">All schools</option></select><select id="spellSort" aria-label="Sort results"><option value="level-name">Level, then name</option><option value="name">Name</option><option value="school-name">School, then name</option><option value="prepared-first">Prepared first</option></select></div></details>
@@ -89,8 +89,46 @@
                 <div id="carriedItemList" class="library"></div>
               </div>
             </div>
+            <div id="featManager" class="managerPane hidden" role="tabpanel" aria-labelledby="featTab">
+              <div class="managerGroup">
+                <div class="top"><h3>Known feats</h3><button type="button" id="openFeatCatalog" aria-haspopup="dialog">Add a feat</button></div>
+                <div id="ownedFeatList" class="library"></div>
+              </div>
+            </div>
         </details>
       </section>
+      <dialog id="featCatalog" aria-labelledby="featCatalogTitle">
+        <header class="top">
+          <h2 id="featCatalogTitle">Add a feat</h2>
+          <button type="button" id="closeFeatCatalog" autofocus>Done</button>
+        </header>
+        <div class="filters catalogFilters">
+          <input type="search" id="featSearch" placeholder="Search feats" aria-label="Search feats" autocomplete="off">
+          <select id="featCategory" aria-label="Feat category"><option value="">All categories</option></select>
+          <label>Sort by <select id="featSort">
+            <option value="name">Name A–Z</option>
+            <option value="name-desc">Name Z–A</option>
+            <option value="category">Category, then name</option>
+            <option value="level">Required level</option>
+          </select></label>
+        </div>
+        <div id="featCatalogResults">
+          <div id="featCatalogList" class="library"></div>
+        </div>
+        <footer class="catalogFooter">
+          <div class="row wrap">
+            <p id="featPageStatus" class="muted" role="status"></p>
+            <nav id="featPages" class="row" aria-label="Feat catalog pages" hidden>
+              <button type="button" id="previousFeatPage">Previous</button>
+              <button type="button" id="nextFeatPage">Next</button>
+            </nav>
+          </div>
+          <div class="row" id="featCatalogFeedback" hidden>
+            <p class="muted" id="featCatalogNotice" role="status"></p>
+            <button type="button" id="featCatalogUndo">Undo</button>
+          </div>
+        </footer>
+      </dialog>
       <dialog id="itemCatalog" aria-labelledby="itemCatalogTitle">
         <header class="top">
           <h2 id="itemCatalogTitle">Add to inventory</h2>
@@ -164,6 +202,7 @@
     <script src="application/document.js"></script>
     <script src="characters/kincaid.js"></script>
     <script src="catalogs/items.js"></script>
+    <script src="catalogs/feats.js"></script>
     <script src="application/item-catalog.js"></script>
     <script src="catalogs/beasts-2014.js"></script>
     <script src="catalogs/base-creatures.js"></script>
@@ -193,6 +232,7 @@
     <script src="application/resources.js"></script>
     <script src="application/catalog-lists.js"></script>
     <script src="application/inventory.js"></script>
+    <script src="application/feats.js"></script>
     <script src="application/interactions.js"></script>
     <script src="pwa.js"></script>
   </body></html>

@@ -191,6 +191,7 @@ document.addEventListener("click", (e) => {
       b.tabIndex = active ? 0 : -1;
     });
     renderInventory();
+    renderFeats();
   }
   if (t.id === "slotToShape")
     slotToShape(+getElementById("resurgenceLevel").value);

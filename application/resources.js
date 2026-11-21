@@ -36,7 +36,7 @@ function renderSaves() {
   const values = getFormSavingThrowRows(getFormRecord(applicationState.activeFormId));
   const mods = conditionModifiers();
   elements.saves.innerHTML = values.map(([ability, value]) => {
-    const concentration = ability === "CON" && kincaid.warCaster && !mods.incapacitated ? "<small>Concentration: Advantage</small>" : "";
+    const concentration = ability === "CON" && hasFeat("war-caster") && !mods.incapacitated ? "<small>Concentration: Advantage</small>" : "";
     return `<div class="stat"><b>${ability} ${savingThrowDisplay(ability, value, mods)}</b>${concentration}</div>`;
   }).join("");
 }

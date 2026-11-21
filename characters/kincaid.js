@@ -9,8 +9,14 @@ const kincaid = {
   walkingSpeed: 30,
   darkvision: 60,
   size: "Medium",
-  alert: true,
-  warCaster: true,
+  startingFeatIds: ["alert", "war-caster"],
+  featReferences: [{
+    id: "war-caster",
+    name: "War Caster",
+    category: "General",
+    description: "<p>The sheet shows Advantage on Constitution saves to maintain Concentration and offers reaction spellcasting when a creature leaves your reach. The spell must target only that creature.</p>",
+    sourcePath: "Kincaid’s existing character sheet"
+  }],
   maximumSelectedCantrips: 4,
   maximumPreparedSpells: 10,
   maximumKnownForms: 6,

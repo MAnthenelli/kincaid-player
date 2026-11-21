@@ -8,3 +8,11 @@ function wireDialogDismissal(dialog, closeButton) {
       dialog.close();
   });
 }
+
+function collectionButton(parent, label, description, action, id) {
+  const button = appendText(parent, "button", label);
+  button.type = "button";
+  button.setAttribute("aria-label", description);
+  button.dataset[action] = id;
+  return button;
+}
