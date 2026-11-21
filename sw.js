@@ -1,5 +1,5 @@
 // Use a fresh release ID whenever any runtime file changes.
-const RELEASE = "4";
+const RELEASE = "6";
 const prefix = "kincaid-sheet:" + self.registration.scope + ":";
 const cacheName = prefix + RELEASE;
 const entry = new URL("index.html", self.registration.scope).href;

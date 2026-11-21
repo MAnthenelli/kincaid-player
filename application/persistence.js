@@ -14,11 +14,11 @@ try {
     }
     let normalized = normalizeState(parsedState);
     applicationState = normalized.state;
-    if (migrated) {
+    if (migrated || normalized.migratedAid) {
       try {
         localStorage.setItem("kincaidV71", JSON.stringify(applicationState));
       } catch (_) {
-        loadWarning = "The updated form selections could not be saved.";
+        loadWarning = "The updated character state could not be saved.";
       }
     }
     if (normalized.repaired)
@@ -70,9 +70,17 @@ function save(msg = "") {
 }
 function change(fn, msg = "") {
   const wasIncapacitated = conditionModifiers().incapacitated;
+  const oldAid = aidBonus();
   const snapshot = captureUndoSnapshot();
   const trigger = document.activeElement;
   fn();
+  const aidChange = aidBonus() - oldAid;
+  if (aidChange) {
+    applicationState.currentHitPoints = intIn(applicationState.currentHitPoints + aidChange, 0, currentMaxHP(), 0);
+    if (!applicationState.currentHitPoints) clearAtZeroHP();
+    else if (!snapshot.currentHitPoints) applicationState.deathSaves = {successes: 0, failures: 0};
+  }
+  syncDerivedState();
   if (!wasIncapacitated && conditionModifiers().incapacitated) {
     endConc();
     if (applicationState.draconicFlightState === "active") applicationState.draconicFlightState = "spent";

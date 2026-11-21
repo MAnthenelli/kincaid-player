@@ -18,12 +18,13 @@ const EFFECT_DEFINITIONS = {
   },
   "Enlarge/Reduce": {
     name: "Enlarge/Reduce",
+    grants: ["resize"],
     baseLevel: 2,
     requiresConcentration: true,
     duration: "concentration",
     category: "transformation",
     choice: {
-      field: "Size", label: "Size change", sizeSteps: { enlarge: 1, reduce: -1 },
+      field: "Size", label: "Size change",
       values: ["enlarge", "reduce"]
     }
   },
@@ -126,11 +127,12 @@ const EFFECT_DEFINITIONS = {
   },
   Guidance: {
     name: "Guidance",
+    grants: ["guidance"],
     baseLevel: 0,
     requiresConcentration: true,
     duration: "concentration",
     category: "character",
-    choice: null
+    choice: { field: "Skill", label: "Skill", values: Object.keys(characterSkills) }
   },
   Resistance: {
     name: "Resistance",
@@ -206,6 +208,7 @@ const EFFECT_DEFINITIONS = {
   },
   Aid: {
     name: "Aid",
+    grants: ["aid"],
     baseLevel: 2,
     requiresConcentration: false,
     duration: "8 hours",

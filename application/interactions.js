@@ -7,23 +7,17 @@ elements.damage.onclick = () =>
       0,
       applicationState.currentHitPoints - d + t
     );
-    if (!applicationState.currentHitPoints) {
-      endConc();
-      applicationState.activeFormId = null;
-      applicationState.radiantStrikeActive = false;
-      if (applicationState.draconicFlightState === "active")
-        applicationState.draconicFlightState = "spent";
-    }
-  }, () => `Damage applied · ${applicationState.currentHitPoints}/${MAX} HP · ${applicationState.temporaryHitPoints} temp HP`);
+    if (!applicationState.currentHitPoints) clearAtZeroHP();
+  }, () => `Damage applied · ${applicationState.currentHitPoints}/${currentMaxHP()} HP · ${applicationState.temporaryHitPoints} temp HP`);
 elements.heal.onclick = () =>
   change(() => {
     applicationState.currentHitPoints = Math.min(
-      MAX,
+      currentMaxHP(),
       applicationState.currentHitPoints + readAmount()
     );
     if (applicationState.currentHitPoints)
       applicationState.deathSaves = { successes: 0, failures: 0 };
-  }, () => `Healed · ${applicationState.currentHitPoints}/${MAX} HP`);
+  }, () => `Healed · ${applicationState.currentHitPoints}/${currentMaxHP()} HP`);
 elements.addTemp.onclick = () => {
   let amount = readAmount();
   if (amount <= applicationState.temporaryHitPoints)
@@ -79,7 +73,7 @@ elements.longRest.onclick = () =>
     () =>
       Object.assign(applicationState, {
         conditions: conditionsAfterLongRest(),
-        currentHitPoints: MAX,
+        currentHitPoints: currentMaxHP(),
         wildShapeUses: kincaid.maximumWildShapeUses,
         spellSlots: { ...kincaid.spellSlotMaximums },
         breathWeaponUses: proficiencyBonus,
@@ -276,7 +270,7 @@ document.addEventListener("click", (e) => {
       () => (applicationState.draconicFlightState = t.dataset.flightState)
     );
   if (t.dataset.end)
-    change(() => endEffect(t.dataset.end), `${t.dataset.end} ended.`);
+    change(() => endEffect(t.dataset.end, t.dataset.effectOrder === undefined ? undefined : t.dataset.effectOrder === "legacy" ? null : Number(t.dataset.effectOrder)), `${t.dataset.end} ended.`);
   if (t.dataset.form) {
     const id = t.dataset.form;
     const known = applicationState.knownFormIds;
@@ -330,6 +324,7 @@ const levelControl = getElementById("exhaustionLevel");
 for (let level = 1; level <= 6; level++)
   levelControl.add(new Option(level === 6 ? "6 · Death" : String(level), String(level)));
 let selectedCondition = "";
+const effectParameter = getElementById("effectParameter");
 function selectCondition(name) {
   selectedCondition = name;
   for (const button of getElementById("conditionChoices").querySelectorAll("button"))
@@ -339,6 +334,11 @@ function selectCondition(name) {
   getElementById("customNameField").hidden = !custom;
   getElementById("customName").required = custom;
   getElementById("exhaustionField").hidden = !exhaustion;
+  const parameter = statusByName.get(name)?.parameter;
+  getElementById("effectParameterField").hidden = !parameter;
+  getElementById("effectParameterLabel").textContent = parameter?.label || "";
+  effectParameter.replaceChildren(...(parameter?.values || []).map(value =>
+    new Option(typeof value === "string" ? value[0].toUpperCase() + value.slice(1) : "Level " + value, value)));
   const entry = exhaustionEntry();
   if (exhaustion) {
     levelControl.value = String(entry?.level || 1);
@@ -355,14 +355,16 @@ getElementById("customName").oninput = () => {
 const effectGroup = getElementById("effectGroup");
 const picker = getElementById("conditionEditor");
 const effectSearch = getElementById("effectSearch");
-const groupLabels = {core: "Conditions", conditions: "Other statuses", "condition-immunities": "Condition immunities", "damage-resistances": "Damage resistances", "damage-vulnerabilities": "Damage vulnerabilities", "spell benefits": "Spell benefits"};
+const groupLabels = {core: "Conditions", conditions: "Other statuses", "condition-immunities": "Condition immunities", "damage-resistances": "Damage resistances", "damage-vulnerabilities": "Damage vulnerabilities", "spell benefits": "Spell benefits", "spell effects": "Spell effects"};
 const effectGroups = new Set(["core", ...[...statusById.values()].map(record => record.group)]);
 for (const group of effectGroups) effectGroup.add(new Option(groupLabels[group] || group, group));
 function renderEffectChoices() {
   const choices = getElementById("conditionChoices");
   choices.replaceChildren();
   const query = effectSearch.value.trim().toLowerCase();
-  const records = [...statusById.values()].filter(record => query ? record.name.toLowerCase().includes(query) : record.group === effectGroup.value);
+  const records = [...statusById.values()].filter(record => query
+    ? [record.name, ...(record.searchTerms || [])].some(term => term.toLowerCase().includes(query))
+    : record.group === effectGroup.value);
   const names = records.map(record => record.name).sort();
   if (!names.length) appendText(choices, "small", "No matching effects.");
   names.push("Custom");
@@ -416,7 +418,16 @@ conditionForm.onsubmit = event => {
       applicationState.conditions = applicationState.conditions.filter(item => item !== previous);
       if (level) applicationState.conditions.push({effectId: "exhaustion", name, custom, level, note});
     } else {
-      applicationState.conditions.push(custom ? {name, custom, note} : {effectId: statusByName.get(name).id, name, custom, note});
+      const definition = statusByName.get(name);
+      const entry = custom ? {name, custom, note} : {effectId: definition.id, name, custom, note};
+      if (definition?.parameter && !custom) {
+        const {field, values} = definition.parameter;
+        const value = values.find(option => String(option) === effectParameter.value);
+        if (value === undefined) return;
+        entry[field] = value;
+        entry.order = nextEffectOrder();
+      }
+      applicationState.conditions.push(entry);
     }
 
   }, exhaustion ? "Exhaustion set to " + level + "." : name + " applied.");

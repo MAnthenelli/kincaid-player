@@ -145,6 +145,10 @@ function progressive(kind, name) {
     html += `<label id="${kind}HealingWrap" class="spellField hidden"><span>Healing rolled</span><input type="number" id="${kind}Healing" min="0" inputmode="numeric" aria-label="Healing rolled in Hit Points"><span>HP</span></label>`;
   const restriction = spellRestriction(name, kind);
   if (restriction === "Verbal component unavailable") html += conditionHint(restriction);
+  if (getSpellRecord(name)?.components.includes("s")) {
+    for (const record of conditionModifiers().records)
+      if (record.somaticReminder) html += conditionHint(record.somaticReminder);
+  }
   const disabled = restriction ? "disabled" : "";
   html += `<div class="row wrap"><button class="infoBtn" data-spell-info="${kind}" aria-label="${name} information" title="${name} information">ⓘ</button><button data-cast="${kind}" ${disabled}>Cast</button>${base && levels.length === 1 ? `<small>${applicationState.spellSlots[base]}/${kincaid.spellSlotMaximums[base]} level ${base} slots</small>` : ""}`;
   if (canCastAsRitual(kind, name)) {

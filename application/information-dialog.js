@@ -62,14 +62,18 @@ function openFormInfo(formId, activeSheet = false) {
   let savingThrows = getFormSavingThrowRows(formRecord)
     .map(([ability, value]) => `${ability} ${activeSheet ? savingThrowDisplay(ability, value, mods) : signedRoll(value)}`)
     .join(" · ");
+  const printedSkills = formRecord.sensesAndSkillsDescription || "";
+  const skills = activeSheet
+    ? [liveFormSkills(printedSkills, formRecord), additionalSkills(formRecord, printedSkills)].filter(Boolean).join(" · ")
+    : printedSkills;
   elements.infoTitle.textContent = formRecord.name;
-  elements.infoBody.innerHTML = `<p><b>${getFormRuleset(formRecord)} · CR ${formRecord.challengeRating} · ${activeSheet ? currentSize() : formRecord.size}</b><br>Source: ${getFormSource(formRecord)}</p>${renderBaseCreatureStatistics(formRecord.baseCreatureId)}<p><b>Wild Shape · AC ${formAC(formId)}</b> · ${activeSheet ? liveMovement() : Object.entries(
+  elements.infoBody.innerHTML = `<p><b>${getFormRuleset(formRecord)} · CR ${formRecord.challengeRating} · ${activeSheet ? liveSize() : formRecord.size}</b><br>Source: ${getFormSource(formRecord)}</p>${renderBaseCreatureStatistics(formRecord.baseCreatureId)}<p><b>Wild Shape · AC ${activeSheet ? liveAC() : formAC(formId)}</b> · ${activeSheet ? liveMovement() : Object.entries(
     formRecord.speeds
   )
     .map(([speedName, speed]) => `${formatSpeedName(speedName)} ${speed} ft`)
     .join(
       " · "
-    )}</p>${activeSheet ? `<p>Initiative ${initiativeText()}${conditionHint(defenseDisplay())}</p>` : ""}<p>${savingThrows}</p>${formRecord.sensesAndSkillsDescription ? `<p><b>Form-specific senses and skills</b><br>${activeSheet ? liveFormSkills(formRecord.sensesAndSkillsDescription) : formRecord.sensesAndSkillsDescription}</p>` : ""}${formRecord.appearanceDescription ? `<p><b>Appearance</b><br>${formRecord.appearanceDescription}</p>` : ""}<p><b>Use</b><br>${formRecord.roleDescription}</p>${formRecord.traits.map((trait) => `<div class="attack"><b>${trait.name}</b> · ${trait.description}</div>`).join("")}${formRecord.actions.map((action) => `<div class="attack"><b>${action.name}</b> · ${activeSheet ? formActionText(action.name, action.description) : action.description}</div>`).join("")}${formRecord.bonusActions.map((action) => `<div class="attack"><b>${action.name} · Bonus Action</b> · ${activeSheet ? formActionText(action.name, action.description) : action.description}</div>`).join("")}`;
+    )}</p>${activeSheet ? `<p>Initiative ${initiativeText()}${conditionHint(defenseDisplay())}</p>` : ""}<p>${savingThrows}</p>${skills ? `<p><b>Senses and skills</b><br>${skills}</p>` : ""}${formRecord.appearanceDescription ? `<p><b>Appearance</b><br>${formRecord.appearanceDescription}</p>` : ""}<p><b>Use</b><br>${formRecord.roleDescription}</p>${formRecord.traits.map((trait) => `<div class="attack"><b>${trait.name}</b> · ${trait.description}</div>`).join("")}${formRecord.actions.map((action) => `<div class="attack"><b>${action.name}</b> · ${activeSheet ? formActionText(action.name, action.description) : action.description}</div>`).join("")}${formRecord.bonusActions.map((action) => `<div class="attack"><b>${action.name} · Bonus Action</b> · ${activeSheet ? formActionText(action.name, action.description) : action.description}</div>`).join("")}`;
   showInfo();
 }
 let infoReturnFocus = null;

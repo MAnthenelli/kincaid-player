@@ -60,7 +60,9 @@ function normalizeEffect(value) {
     typeof value.n !== "string"
   )
     return null;
-  return createEffectRecord(value.n, value.level, value.self, value.choice);
+  const effect = createEffectRecord(value.n, value.level, value.self, value.choice);
+  if (effect && Number.isSafeInteger(value.order) && value.order >= 0) effect.order = value.order;
+  return effect;
 }
 function normalizeConditions(raw) {
   const entries = [];
@@ -75,7 +77,14 @@ function normalizeConditions(raw) {
     const note = typeof item.note === "string" ? item.note :
       [item.source, item.reminder].filter(x => typeof x === "string" && x.trim()).join(" · ");
     if (custom || name !== "Exhaustion") {
-      entries.push(custom ? {name, custom, note} : {effectId: record.id, name, custom, note});
+      const entry = custom ? {name, custom, note} : {effectId: record.id, name, custom, note};
+      const parameter = !custom && record.parameter;
+      if (parameter) {
+        if (!parameter.values.includes(item[parameter.field])) continue;
+        entry[parameter.field] = item[parameter.field];
+        entry.order = intIn(item.order, 0, Number.MAX_SAFE_INTEGER - 1, 0);
+      }
+      entries.push(entry);
       continue;
     }
     if (!exhaustion) {
@@ -119,7 +128,8 @@ function normalizeState(raw) {
     for (const item of raw.activeEffects) {
       let effect = normalizeEffect(item);
       if (effect) {
-        let prior = effects.findIndex((x) => x.n === effect.n);
+        let prior = effects.findIndex(x => x.n === effect.n &&
+          (effect.n !== "Aid" || x.order === effect.order));
         if (prior >= 0) effects.splice(prior, 1);
         effects.push(effect);
       } else repaired = true;
@@ -135,8 +145,15 @@ function normalizeState(raw) {
     effects = effects.filter((x) => !SPELL_METADATA[x.n]?.[1] || x.n === conc);
     repaired = true;
   }
-  let hp = intIn(raw.currentHitPoints, 0, MAX, base.currentHitPoints),
-    flight = ["ready", "active", "spent"].includes(raw.draconicFlightState)
+  const conditions = normalizeConditions(raw.conditions);
+  const maximum = MAX + aidBonus({conditions, activeEffects: effects});
+  const legacyAid = effects.find(effect => effect.n === "Aid" && effect.self && effect.order === undefined);
+  let hp = intIn(raw.currentHitPoints, 0, maximum, base.currentHitPoints);
+  if (legacyAid) {
+    legacyAid.order = 0;
+    hp = intIn(hp + (legacyAid.level - 1) * statusById.get("aid").hitPointsPerLevel, 0, maximum, hp);
+  }
+  let flight = ["ready", "active", "spent"].includes(raw.draconicFlightState)
       ? raw.draconicFlightState
       : base.draconicFlightState,
     radiant = bool(raw.radiantStrikeActive);
@@ -172,7 +189,7 @@ function normalizeState(raw) {
     knownFormIds: known,
     knownCantripNames: cantrips,
     preparedSpellNames: prep,
-    conditions: normalizeConditions(raw.conditions),
+    conditions,
     activeEffects: effects,
     concentrationEffect: conc,
     size: null,
@@ -194,6 +211,7 @@ function normalizeState(raw) {
     let candidate = {
       ...raw,
       conditions: state.conditions,
+      ...(legacyAid ? {currentHitPoints: hp} : {}),
       v: 71,
       knownFormIds: known,
       knownCantripNames: cantrips,
@@ -208,5 +226,5 @@ function normalizeState(raw) {
   } catch (_) {
     repaired = true;
   }
-  return { state, repaired };
+  return { state, repaired, migratedAid: Boolean(legacyAid) };
 }

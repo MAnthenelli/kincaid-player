@@ -24,6 +24,15 @@ const kincaid = {
   startingPreparedSpells: ["Animal Friendship", "Charm Person", "Create or Destroy Water", "Detect Magic", "Detect Poison and Disease", "Entangle", "Faerie Fire", "Fog Cloud", "Goodberry", "Healing Word"],
   startingCantrips: ["Elementalism", "Guidance", "Message", "Resistance"]
 };
+// Skill bonuses from the character sheet. Physical modifiers change in Wild Shape.
+const characterSkills = {
+  Acrobatics: ["DEX", 1], "Animal Handling": ["WIS", 4], Arcana: ["INT", 3],
+  Athletics: ["STR", -1], Deception: ["CHA", 1], History: ["INT", -1],
+  Insight: ["WIS", 7], Intimidation: ["CHA", 1], Investigation: ["INT", -1],
+  Medicine: ["WIS", 4], Nature: ["INT", 6], Perception: ["WIS", 7],
+  Performance: ["CHA", 1], Persuasion: ["CHA", 4], Religion: ["INT", -1],
+  "Sleight of Hand": ["DEX", 1], Stealth: ["DEX", 1], Survival: ["WIS", 4]
+};
 const abilityModifier = ability => Math.floor((kincaid.abilityScores[ability] - 10) / 2);
 const proficiencyBonus = 2 + Math.floor((kincaid.druidLevel - 1) / 4);
 const spellAttackBonus = proficiencyBonus + abilityModifier("wisdom");

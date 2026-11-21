@@ -14,11 +14,12 @@ function formAC(formId) {
   return hasSelfEffect("Barkskin") ? Math.max(17, base) : base;
 }
 function currentAC() {
-  return applicationState.activeFormId
+  const base = applicationState.activeFormId
     ? formAC(applicationState.activeFormId)
     : hasSelfEffect("Barkskin")
       ? Math.max(17, equippedArmorClass)
       : equippedArmorClass;
+  return base + liveModifiers().armorClassDelta;
 }
 function selfSenses() {
   let x = [];
@@ -29,7 +30,7 @@ function selfSenses() {
 }
 function speedObj() {
   const modifiers = liveModifiers();
-  const adjust = speed => modifiers.stopMovement ? 0 : Math.max(0, speed + modifiers.speedDelta);
+  const adjust = speed => modifiers.stopMovement ? 0 : Math.max(0, Math.floor((speed + modifiers.speedDelta) * modifiers.speedMultiplier));
   if (!applicationState.activeFormId) {
     let speed = adjust(kincaid.walkingSpeed);
     return {
@@ -61,9 +62,9 @@ function currentSize() {
       liveModifiers().sizeSteps;
   return sizes[Math.max(0, Math.min(5, index))];
 }
-function endEffect(name) {
+function endEffect(name, order) {
   applicationState.activeEffects = applicationState.activeEffects.filter(
-    (x) => x.n !== name
+    (effect) => effect.n !== name || (order !== undefined && (effect.order ?? null) !== order)
   );
   if (applicationState.concentrationEffect === name)
     applicationState.concentrationEffect = null;
@@ -72,6 +73,12 @@ function endEffect(name) {
 function endConc() {
   if (applicationState.concentrationEffect)
     endEffect(applicationState.concentrationEffect);
+}
+function clearAtZeroHP() {
+  endConc();
+  applicationState.activeFormId = null;
+  applicationState.radiantStrikeActive = false;
+  if (applicationState.draconicFlightState === "active") applicationState.draconicFlightState = "spent";
 }
 function enterForm(formId) {
   applicationState.wildShapeUses--;

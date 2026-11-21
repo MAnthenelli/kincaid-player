@@ -24,6 +24,33 @@ function createEffectRecord(effectName, level, selfTarget, choice) {
     category: effectDefinition.category
   };
 }
+function effectApplications(id, state = applicationState) {
+  const field = statusById.get(id).parameter?.field;
+  const applications = state.conditions.filter(entry => !entry.custom && entry.effectId === id)
+    .map(entry => ({
+      value: entry[field], order: entry.order || 0,
+      source: entry.name + (entry.note ? ` (${entry.note})` : "")
+    }));
+  for (const effect of state.activeEffects) {
+    if (effect.self && getEffectDefinition(effect.n)?.grants?.includes(id))
+      applications.push({value: effect[field], order: effect.order || 0, source: effect.n + " (Kincaid)"});
+  }
+  return applications.filter(entry => entry.value != null).sort((a, b) => b.order - a.order);
+}
+function nextEffectOrder() {
+  return 1 + Math.max(0, ...[...applicationState.conditions, ...applicationState.activeEffects].map(entry => entry.order || 0));
+}
+function aidApplication(state = applicationState) {
+  return effectApplications("aid", state).reduce((best, entry) =>
+    !best || entry.value > best.value ? entry : best, null);
+}
+function aidBonus(state = applicationState) {
+  const aid = aidApplication(state);
+  return aid ? (aid.value - 1) * statusById.get("aid").hitPointsPerLevel : 0;
+}
+function currentMaxHP() {
+  return MAX + aidBonus();
+}
 function isIndefiniteBattlefieldEffect(effect) {
   let effectDefinition = getEffectDefinition(effect.n);
   return Boolean(
@@ -76,23 +103,51 @@ const EFFECT_CATEGORY_LABEL = {
 const EFFECT_DEFINITION_ISSUES = validateEffectDefinitions();
 
 function liveModifiers() {
-  const totals = { speedDelta: 0, sizeSteps: 0, stopMovement: false };
+  const totals = {
+    speedDelta: 0, speedMultiplier: 1, sizeSteps: 0, stopMovement: false,
+    armorClassDelta: 0, speedSources: [], sizeSources: [], armorSources: []
+  };
+  const resize = effectApplications("resize")[0];
+  if (resize) {
+    totals.sizeSteps = statusById.get("resize").sizeSteps[resize.value];
+    totals.sizeSources.push(`${resize.source}: one size category ${totals.sizeSteps > 0 ? "larger" : "smaller"}`);
+  }
   for (const effect of applicationState.activeEffects) {
     if (!effect.self) continue;
     const definition = getEffectDefinition(effect.n);
-    totals.speedDelta += definition.speedDelta || 0;
-    totals.sizeSteps += definition.choice?.sizeSteps?.[effect.choice] || 0;
+    const speed = definition.speedDelta || 0;
+    const size = definition.choice?.sizeSteps?.[effect.choice] || 0;
+    totals.speedDelta += speed;
+    totals.sizeSteps += size;
+    if (speed) totals.speedSources.push(`${signedRoll(speed)} ft from ${effect.n}`);
+    if (size) totals.sizeSources.push(`${effect.n}: one size category ${size > 0 ? "larger" : "smaller"}`);
   }
-  for (const record of conditionModifiers().records) {
-    totals.speedDelta += (record.speedDelta || 0) * (record.cumulative ? exhaustionEntry()?.level || 0 : 1);
-    if (record.stopMovement) totals.stopMovement = true;
+  const {records, describe} = conditionModifiers();
+  for (const record of records) {
+    const speed = (record.speedDelta || 0) * (record.cumulative ? exhaustionEntry()?.level || 0 : 1);
+    totals.speedDelta += speed;
+    if (speed) totals.speedSources.push(`${signedRoll(speed)} ft from ${describe(record).join(", ")}`);
+    if (record.speedMultiplier) {
+      totals.speedMultiplier *= record.speedMultiplier;
+      totals.speedSources.push(`Speed ×${record.speedMultiplier} from ${describe(record).join(", ")}`);
+    }
+    if (record.armorClassDelta) {
+      totals.armorClassDelta += record.armorClassDelta;
+      totals.armorSources.push(`${signedRoll(record.armorClassDelta)} AC from ${describe(record).join(", ")}`);
+    }
+    if (record.stopMovement) {
+      totals.stopMovement = true;
+      totals.speedSources.push(`Speed 0 from ${describe(record).join(", ")}`);
+    }
   }
   return totals;
 }
 
 function conditionsAfterLongRest() {
   return applicationState.conditions.flatMap(item => {
-    if (item.custom || item.name !== "Exhaustion") return [item];
+    if (item.custom) return [item];
+    if (statusById.get(item.effectId)?.expiresOnRest) return [];
+    if (item.name !== "Exhaustion") return [item];
     return item.level > 1 ? [{...item, level: item.level - 1}] : [];
   });
 }
@@ -213,9 +268,11 @@ function rollDisplay(base, kind, ability = "", skill = "", suffix = "", afterRol
       reasons.push(describe(record).join(", ") + ": " + record.dexSaveNote);
     }
   }
+  if ((save || check) && ability === "STR") {
+    const resize = effectApplications("resize")[0];
+    if (resize) (resize.value === "reduce" ? disadvantage : advantage).push(resize.source);
+  }
   for (const effect of applicationState.activeEffects.filter(item => item.self)) {
-    if ((save || check) && ability === "STR" && effect.n === "Enlarge/Reduce")
-      (effect.choice === "reduce" ? disadvantage : advantage).push(effect.n);
     if (check && effect.n === "Enhance Ability" && effect.choice?.slice(0, 3).toUpperCase() === ability)
       advantage.push(effect.n);
   }
@@ -255,11 +312,24 @@ function rollDisplay(base, kind, ability = "", skill = "", suffix = "", afterRol
       adjustments.push(`${signedRoll(bonus)} (${origins(record).join(", ")})`);
     }
   }
+  let saveBonus = 0;
+  if (save) {
+    for (const record of records) {
+      const bonus = record.saveBonuses?.[ability];
+      if (!bonus) continue;
+      saveBonus += bonus;
+      adjustments.push(`${signedRoll(bonus)} (${describe(record).join(", ")})`);
+    }
+  }
+  const guidance = kind === "check" && skill ? effectApplications("guidance")[0] : null;
+  const skillDie = guidance && guidance.value.toLowerCase() === skill
+    ? statusById.get("guidance").skillDie : "";
+  if (skillDie) reasons.push(`+${skillDie} from ${guidance.source}`);
   if (d20) {
     const {level, note} = exhaustionEntry();
     adjustments.push(`−${-d20} (Exhaustion ${level}${note ? " · " + note : ""})`);
   }
-  const total = base + d20 + skillBonus;
+  const total = base + d20 + skillBonus + saveBonus;
   if (adjustments.length)
     reasons.unshift(`${signedRoll(base)} ${adjustments.join(" ")} = ${signedRoll(total)}`);
   const value = passive ? String(total + passiveDelta) : signedRoll(total);
@@ -286,7 +356,7 @@ function rollDisplay(base, kind, ability = "", skill = "", suffix = "", afterRol
     const ruling = rulings.length ? `<small class="attackRuling">${rulings.join(" · ")}</small>` : "";
     return explainedRoll(value + suffix, reasons) + afterRoll + ruling;
   }
-  return explainedRoll([value + suffix, result, ...qualifiers].filter(Boolean).join(" · "), reasons);
+  return explainedRoll([value + suffix + (skillDie ? " + " + skillDie : ""), result, ...qualifiers].filter(Boolean).join(" · "), reasons);
 }
 function harmfulTargetHint() {
   return conditionModifiers().has("protectCharmer") ? conditionHint("Cannot harm the charmer") : "";

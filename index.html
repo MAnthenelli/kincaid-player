@@ -26,7 +26,7 @@
             <div id="formData"></div>
             <div id="defense" class="defenses"></div>
             <div class="dashboardHealth">
-              <div class="healthLine"><div><span id="hp" class="big"></span> / <span data-character-limit="maximumHitPoints"></span> HP</div><div class="bars"><div class="bar"><i id="hpbar"></i></div></div></div>
+              <div class="healthLine"><div><span id="hp" class="big"></span> / <span id="maximumHP" data-character-limit="maximumHitPoints"></span> HP</div><div class="bars"><div class="bar"><i id="hpbar"></i></div></div></div>
               <div class="healthLine tempLine"><div>Temp HP <b id="temp"></b></div><div class="bars"><div class="bar temp"><i id="tempbar"></i></div></div></div>
               <div class="row wrap healthControls"><label class="hpAmount">HP amount<input id="amount" type="number" min="0" value="1"></label><button id="damage">Damage</button><button id="heal">Heal</button><button id="addTemp" title="Keep the higher temporary HP total; temporary HP does not stack">Gain Temp</button><details class="tempCorrection"><summary>Adjust temp HP</summary><div class="row wrap"><button id="setTemp" title="Correction control: replace the current temporary HP total">Set Temp</button><button id="clearTemp">Clear Temp</button></div></details></div>
               <div id="death" class="hidden" style="margin-top: 8px"><b class="danger">Death Saves</b><div id="deathPips"></div></div>
@@ -97,6 +97,7 @@
           <p id="conditionPreview" aria-live="polite"></p>
           <label id="customNameField" hidden="">Effect name<input id="customName" maxlength="120"></label>
           <label id="exhaustionField" hidden="">Level<select id="exhaustionLevel"></select></label>
+          <label id="effectParameterField" hidden=""><span id="effectParameterLabel"></span><select id="effectParameter"></select></label>
           <label>Note (optional)<input id="conditionNote" placeholder="Vine · escape DC 15"></label>
           <footer>
             <button id="applyCondition" disabled="">Apply effect</button>
@@ -110,7 +111,7 @@
       </aside>
     </main>
     <p hidden="" role="alert" id="loadError"></p>
-    <div popover="" id="rollExplanation" class="rollExplanation" role="dialog" aria-label="Roll modifiers"></div>
+    <div popover="" id="rollExplanation" class="rollExplanation" role="dialog" aria-label="Modifier sources"></div>
     <script src="application/load-errors.js"></script>
     <script src="application/document.js"></script>
     <script src="characters/kincaid.js"></script>

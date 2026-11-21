@@ -13,12 +13,16 @@ function render() {
     ? "Dark"
     : "Light";
   elements.notice.textContent = applicationState.noticeMessage;
+  const maxHP = currentMaxHP();
+  const aid = aidApplication();
   elements.hp.textContent = applicationState.currentHitPoints;
+  getElementById("maximumHP").innerHTML = explainedRoll(String(maxHP),
+    aid ? [`${MAX} + ${aidBonus()} from ${aid.source} (level ${aid.value})`] : []);
   elements.temp.textContent = applicationState.temporaryHitPoints;
   elements.hpbar.style.width =
-    (applicationState.currentHitPoints / MAX) * 100 + "%";
+    (applicationState.currentHitPoints / maxHP) * 100 + "%";
   elements.tempbar.style.width =
-    Math.min(100, (applicationState.temporaryHitPoints / MAX) * 100) + "%";
+    Math.min(100, (applicationState.temporaryHitPoints / maxHP) * 100) + "%";
   const mods = conditionModifiers();
   elements.defense.innerHTML = defenseDisplay();
   elements.defense.classList.toggle("hidden", !elements.defense.textContent);
@@ -31,7 +35,8 @@ function render() {
   renderForm();
   renderCombatSelections();
   getElementById("actionRestriction").textContent = mods.incapacitated
-    ? "Unavailable while Incapacitated · Actions, Bonus Actions, and Reactions" : "";
+    ? "Unavailable while Incapacitated · Actions, Bonus Actions, and Reactions"
+    : mods.records.map(record => record.turnRestriction).filter(Boolean).join(" · ");
   const expanded = new Set([...document.querySelectorAll("#activeStatus details[open]")].map(entry => entry.dataset.entry));
   renderEffects(expanded);
   renderConditions(expanded);
@@ -40,7 +45,7 @@ function render() {
   renderLibraries();
   const formName = applicationState.activeFormId ? getFormRecord(applicationState.activeFormId).name : "Dragonborn";
   const count = document.querySelectorAll("#activeStatus details").length;
-  elements.stickyState.innerHTML = `<span class="stickyForm">${formName} · ${currentSize()}</span><b>HP ${applicationState.currentHitPoints}/${MAX}</b>${applicationState.temporaryHitPoints ? `<span>+${applicationState.temporaryHitPoints} temp</span>` : ""}<span>AC ${currentAC()}</span><a href="#activeStatus" aria-label="View ${count} active effects">Effects ${count}</a>`;
+  elements.stickyState.innerHTML = `<span class="stickyForm">${formName} · ${currentSize()}</span><b>HP ${applicationState.currentHitPoints}/${maxHP}</b>${applicationState.temporaryHitPoints ? `<span>+${applicationState.temporaryHitPoints} temp</span>` : ""}<span>AC ${currentAC()}</span><a href="#activeStatus" aria-label="View ${count} active effects">Effects ${count}</a>`;
   elements.undo.disabled = !applicationState.undoHistory.length;
   const lastChange = undoLabels.get(applicationState.undoHistory.at(-1));
   for (const button of [elements.undo, getElementById("feedbackUndo")]) {
@@ -67,21 +72,47 @@ function currentInitiative() {
 function initiativeText() {
   return rollDisplay(currentInitiative(), "initiative", "DEX");
 }
-const skillAbilities = {perception:"WIS", stealth:"DEX", athletics:"STR", acrobatics:"DEX", survival:"WIS"};
-function liveFormSkills(text) {
-  return text.replace(/(passive perception )([0-9]+)|([a-z]+) ([+-]\d+)/gi, (_, passive, score, skill, bonus) => {
-    if (passive) {
-      return passive + rollDisplay(Number(score), "passive", "WIS", "perception");
-    }
-    return skill + " " + rollDisplay(Number(bonus), "check", skillAbilities[skill.toLowerCase()], skill.toLowerCase());
+const skillNames = Object.keys(characterSkills);
+const skillByName = new Map(skillNames.map(name => [name.toLowerCase(), name]));
+const printedSkillPattern = new RegExp(`(passive perception )(\\d+)|(${skillNames.join("|")}) ([+-]\\d+)`, "gi");
+function skillBase(name, form) {
+  const [ability, base] = characterSkills[name];
+  const physical = {STR: "strength", DEX: "dexterity", CON: "constitution"}[ability];
+  return form && physical ? base + form.abilityModifiers[physical] - abilityModifier(physical) : base;
+}
+function liveFormSkills(text, form) {
+  return text.replace(printedSkillPattern, (_, passive, score, skill, bonus) => {
+    if (passive) return passive + rollDisplay(Number(score), "passive", "WIS", "perception");
+    const key = skill.toLowerCase();
+    const name = skillByName.get(key);
+    const base = key === effectApplications("guidance")[0]?.value.toLowerCase()
+      ? Math.max(Number(bonus), skillBase(name, form)) : Number(bonus);
+    return skill + " " + rollDisplay(base, "check", characterSkills[name][0], key);
   });
 }
-function liveStealth(dexterityModifier) {
-  if (!conditionModifiers().records.some(record => record.skillBonus?.stealth)) return "";
-  return "<span>Stealth " + rollDisplay(dexterityModifier, "check", "DEX", "stealth") + "</span>";
+function additionalSkills(form, printed = "") {
+  const names = new Set();
+  const guidance = effectApplications("guidance")[0];
+  if (guidance) names.add(guidance.value);
+  if (conditionModifiers().records.some(record => record.skillBonus?.stealth)) names.add("Stealth");
+  const existing = new Set([...printed.matchAll(printedSkillPattern)].map(match => match[3]?.toLowerCase()));
+  return [...names].filter(name => !existing.has(name.toLowerCase())).map(name =>
+    `<span>${name} ${rollDisplay(skillBase(name, form), "check", characterSkills[name][0], name.toLowerCase())}</span>`
+  ).join("");
+}
+function liveAC() {
+  return explainedRoll(String(currentAC()), liveModifiers().armorSources);
 }
 function liveMovement() {
-  return speedText() + conditionHint(conditionModifiers().movement);
+  return explainedRoll(speedText(), liveModifiers().speedSources) + conditionHint(conditionModifiers().movement);
+}
+function liveSize() {
+  return explainedRoll(currentSize(), liveModifiers().sizeSources);
+}
+function liveStrengthCheck(form) {
+  if (!liveModifiers().sizeSources.length) return "";
+  const strength = form?.abilityModifiers.strength ?? abilityModifier("strength");
+  return `<span>STR checks ${rollDisplay(strength, "check", "STR")}</span>`;
 }
 function renderForm() {
   let formRecord = getFormRecord(applicationState.activeFormId);
@@ -96,14 +127,14 @@ function renderForm() {
   if (!formRecord) {
     elements.formTitle.textContent = "Dragonborn";
     elements.formRole.textContent = `Darkvision ${kincaid.darkvision} ft` + (conditionModifiers().has("sightFails") ? " · Sight-dependent checks fail" : "");
-    elements.formData.innerHTML = `<div class="row wrap"><b>AC ${currentAC()}</b><b>${currentSize()}</b><b>Initiative ${initiativeText()}</b></div><div class="row wrap"><span>${liveMovement()}</span>${selfSenses() ? `<span>${selfSenses()}</span>` : ""}${liveStealth(abilityModifier("dexterity"))}</div>`;
+    elements.formData.innerHTML = `<div class="row wrap"><b>AC ${liveAC()}</b><b>${liveSize()}</b><b>Initiative ${initiativeText()}</b></div><div class="row wrap"><span>${liveMovement()}</span>${selfSenses() ? `<span>${selfSenses()}</span>` : ""}${liveStrengthCheck()}${additionalSkills()}</div>`;
     return;
   }
   elements.formTitle.textContent = `${formRecord.name} · ${getFormRuleset(formRecord)}`;
   elements.formRole.textContent = formRecord.roleDescription;
   const skills = formRecord.sensesAndSkillsDescription || "";
-  const stealth = /\bstealth [+-]\d+/i.test(skills) ? "" : liveStealth(formRecord.abilityModifiers.dexterity);
-  elements.formData.innerHTML = `<div class="row wrap"><b>AC ${currentAC()}</b><b>${currentSize()}</b><b>Initiative ${initiativeText()}</b></div><div class="row wrap"><span>${liveMovement()}</span>${selfSenses() ? `<span>${selfSenses()}</span>` : ""}${skills ? `<span>${liveFormSkills(skills)}</span>` : ""}${stealth}<button id="radiantToggle" class="${applicationState.radiantStrikeActive ? "active" : ""}">${applicationState.radiantStrikeActive ? "Show attacks as Radiant: ON" : "Show attacks as Radiant: OFF"}</button></div>`;
+  const extraSkills = additionalSkills(formRecord, skills);
+  elements.formData.innerHTML = `<div class="row wrap"><b>AC ${liveAC()}</b><b>${liveSize()}</b><b>Initiative ${initiativeText()}</b></div><div class="row wrap"><span>${liveMovement()}</span>${selfSenses() ? `<span>${selfSenses()}</span>` : ""}${liveStrengthCheck(formRecord)}${skills ? `<span>${liveFormSkills(skills, formRecord)}</span>` : ""}${extraSkills}<button id="radiantToggle" class="${applicationState.radiantStrikeActive ? "active" : ""}">${applicationState.radiantStrikeActive ? "Show attacks as Radiant: ON" : "Show attacks as Radiant: OFF"}</button></div>`;
 }
 function formActionText(name, detail) {
   if (!attackBonusPattern.test(detail)) return detail + (/saving throw|\bsave\b|escape DC/i.test(detail) ? harmfulTargetHint() : "");
@@ -147,8 +178,10 @@ function renderTurn() {
   if (applicationState.concentrationEffect === "Moonbeam")
     elements.actions.insertAdjacentHTML("beforeend", choice("Move Moonbeam", "Magic action · move up to 60 ft" + harmfulTargetHint()));
   const restrictions = conditionModifiers();
-  const reactionNote = restrictions.sources("blockReaction").length && !restrictions.incapacitated ? conditionHint("Cannot take Reactions") : "";
-  elements.reaction.innerHTML = reactionNote + opportunityOptions() + reactionSpellControl();
+  const reactionSources = restrictions.sources("blockReaction");
+  elements.reaction.innerHTML = reactionSources.length && !restrictions.incapacitated
+    ? explainedRoll("Cannot take Reactions", reactionSources)
+    : opportunityOptions() + reactionSpellControl();
   let flightButton = getElementById("useFlight");
   if (flightButton)
     flightButton.disabled = applicationState.draconicFlightState !== "ready";

@@ -26,7 +26,7 @@ function castPart(name, level, spend, effectChoice, selfTarget, healing, ritual 
         healing
       ) {
         applicationState.currentHitPoints = Math.min(
-          MAX,
+          currentMaxHP(),
           applicationState.currentHitPoints + healing
         );
         if (applicationState.currentHitPoints)
@@ -43,9 +43,10 @@ function castPart(name, level, spend, effectChoice, selfTarget, healing, ritual 
         applicationState.conditions = applicationState.conditions.filter(entry => entry.custom || !ended.includes(entry.effectId));
       }
       if (effectRecord) {
-        applicationState.activeEffects = applicationState.activeEffects.filter(
-          (effect) => effect.n !== name
-        );
+        if (getEffectDefinition(name).grants?.some(id => statusById.get(id).parameter))
+          effectRecord.order = nextEffectOrder();
+        if (name !== "Aid")
+          applicationState.activeEffects = applicationState.activeEffects.filter(effect => effect.n !== name);
         applicationState.activeEffects.push(effectRecord);
         if (getEffectDefinition(name).requiresConcentration)
           applicationState.concentrationEffect = name;

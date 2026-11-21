@@ -1,5 +1,9 @@
 function activeSpellText(name, level, effect) {
   const target = effect?.self ? "Kincaid" : "Target";
+  if (name === "Guidance" && effect?.choice)
+    return `${target} adds 1d4 to ${effect.choice} checks for up to 1 minute while the caster concentrates.`;
+  if (name === "Aid")
+    return `Each target gains ${(level - 1) * statusById.get("aid").hitPointsPerLevel} current and maximum HP for 8 hours.`;
   if (name === "Enhance Ability") {
     const ability = effect?.choice || "the chosen ability";
     const additional = level > 2 ? " A second target can choose its own ability." : "";
@@ -72,15 +76,19 @@ function renderEffects(expanded) {
   for (const effect of applicationState.activeEffects) {
     const concentration = effect.n === applicationState.concentrationEffect;
     const label = (concentration ? "Concentration · " : "") + effect.n;
-    const entry = effectEntry("spell:" + effect.n, label, expanded);
+    const order = effect.order ?? "legacy";
+    const key = "spell:" + effect.n + (effect.n === "Aid" ? ":" + order : "");
+    const entry = effectEntry(key, label, expanded);
     const type = getEffectCategoryLabel(getEffectDefinition(effect.n));
     const summary = entry.querySelector("summary");
-    if (effect.self) appendText(summary, "small", "Kincaid");
+    if (effect.self) appendText(summary, "small", effect.n === "Aid" ? "Kincaid · Level " + effect.level : "Kincaid");
     else if (SPELL_SELF_TARGET_MODES[effect.n] === "optional") appendText(summary, "small", "Other target");
     if (effect.n === "Moonbeam") appendText(summary, "small", "DC " + spellSaveDC + " CON · " + (2 + Math.max(0, effect.level - 2)) + "d10 radiant");
     appendText(entry, "small", [type, effect.level ? "Level " + effect.level : "", SPELL_METADATA[effect.n]?.[2]].filter(Boolean).join(" · "));
     appendText(entry, "p", activeSpellText(effect.n, effect.level, effect));
-    appendText(entry, "button", "End " + effect.n).dataset.end = effect.n;
+    const end = appendText(entry, "button", "End " + effect.n);
+    end.dataset.end = effect.n;
+    if (effect.n === "Aid") end.dataset.effectOrder = order;
     (concentration ? elements.conc : elements.effects).append(entry);
   }
   if (applicationState.draconicFlightState === "active") {
@@ -108,6 +116,9 @@ function renderConditions(expanded) {
     if (!custom && blocked.has(definition.id)) appendText(summary, "small", "Immune");
     if (entries.length > 1) appendText(summary, "small", entries.length + " sources");
     else if (note) appendText(summary, "small", note).className = "entryNote";
+    const parameter = !custom && definition.parameter;
+    const formatParameter = value => parameter.field === "level" ? "Level " + value : String(value);
+    if (parameter && entries.length === 1) appendText(summary, "small", formatParameter(entries[0][parameter.field]));
     if (!custom) appendText(entry, "p", effectReminder(definition));
     if (level) {
       const field = appendText(entry, "label", "Exhaustion level ");
@@ -120,10 +131,13 @@ function renderConditions(expanded) {
         change(() => applicationState.conditions[entries[0].index].level = next, "Exhaustion set to " + next + ".");
       };
     }
-    entries.forEach(({index, note}, i) => {
+    entries.forEach((application, i) => {
+      const {index, note} = application;
       const row = document.createElement("div");
       row.className = "conditionInstance";
-      if (entries.length > 1) appendText(row, "span", note || "Source " + (i + 1));
+      if (entries.length > 1) appendText(row, "span", [
+        note || "Source " + (i + 1), parameter ? formatParameter(application[parameter.field]) : ""
+      ].filter(Boolean).join(" · "));
       const remove = appendText(row, "button", level ? "Remove exhaustion" : "Remove");
       remove.setAttribute("aria-label", "Remove " + name + (note ? " from " + note : ""));
       remove.dataset.removeCondition = "";
