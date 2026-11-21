@@ -49,9 +49,7 @@ const ids = [
   "formSearch",
   "formCR",
   "formRoleFilter", "formEdition", "swapForm", "swapFormField",
-  "formSort",
-  "spellManager",
-  "formManager"
+  "formSort"
 ];
 const elements = ids.reduce((o, id) => ((o[id] = getElementById(id)), o), {});
 

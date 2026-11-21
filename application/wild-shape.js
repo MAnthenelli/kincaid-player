@@ -9,7 +9,7 @@ function syncDerivedState() {
 }
 function formAC(formId) {
   let formRecord = getFormRecord(formId);
-  if (!formRecord) return equippedArmorClass;
+  if (!formRecord) return equippedArmorClass();
   const base = Math.max(circleFormArmorClass, formRecord.armorClass);
   return hasSelfEffect("Barkskin") ? Math.max(17, base) : base;
 }
@@ -17,8 +17,8 @@ function currentAC() {
   const base = applicationState.activeFormId
     ? formAC(applicationState.activeFormId)
     : hasSelfEffect("Barkskin")
-      ? Math.max(17, equippedArmorClass)
-      : equippedArmorClass;
+      ? Math.max(17, equippedArmorClass())
+      : equippedArmorClass();
   return base + liveModifiers().armorClassDelta;
 }
 function selfSenses() {

@@ -71,20 +71,68 @@
         </section>
       </div>
       <section id="info" class="panel sectionAnchor">
-        <details><summary>Manage character</summary><div class="managerMenu" role="tablist" aria-label="Character manager"><button data-manager="spells" role="tab" aria-controls="spellManager" aria-selected="false">Spell Library</button><button data-manager="forms" role="tab" aria-controls="formManager" aria-selected="false">Bestiary</button></div><div id="spellManager" class="managerPane hidden" role="tabpanel"><div class="managerGroup">
+        <details><summary>Manage character</summary><div class="managerMenu" role="tablist" aria-label="Character manager"><button id="spellTab" data-manager="spells" role="tab" aria-controls="spellManager" aria-selected="false">Spell Library</button><button id="formTab" data-manager="forms" role="tab" aria-controls="formManager" aria-selected="false">Bestiary</button><button id="inventoryTab" data-manager="inventory" role="tab" aria-controls="inventoryManager" aria-selected="false">Inventory</button></div><div id="spellManager" class="managerPane hidden" role="tabpanel" aria-labelledby="spellTab"><div class="managerGroup">
               <h3>Cantrips <span id="cantripCount"></span>/<span data-character-limit="maximumSelectedCantrips"></span> · Prepared <span id="prepCount"></span>/<span data-character-limit="maximumPreparedSpells"></span></h3>
               <input id="spellSearch" placeholder="Search spells" aria-label="Search spells">
               <details class="filterOptions"><summary>Filters</summary><div class="filters"><select id="spellLevel" aria-label="All levels"><option value="">All levels</option><option value="0">Cantrip</option><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option></select><select id="spellSchool" aria-label="All schools"><option value="">All schools</option></select><select id="spellSort" aria-label="Sort results"><option value="level-name">Level, then name</option><option value="name">Name</option><option value="school-name">School, then name</option><option value="prepared-first">Prepared first</option></select></div></details>
               <div id="spellLibrary" class="library"></div>
-            </div></div><div id="formManager" class="managerPane hidden" role="tabpanel"><div class="managerGroup">
+            </div></div><div id="formManager" class="managerPane hidden" role="tabpanel" aria-labelledby="formTab"><div class="managerGroup">
               <h3>Known forms <span id="knownCount"></span>/<span data-character-limit="maximumKnownForms"></span></h3>
               <input id="formSearch" placeholder="Search forms" aria-label="Search forms">
               <details class="filterOptions"><summary>Filters</summary><div class="filters"><select id="formCR" aria-label="All CRs"><option value="">All CRs</option></select><select id="formEdition" aria-label="Filter forms by ruleset"><option value="">All rulesets</option></select><select id="formRoleFilter" aria-label="All roles"><option value="">All roles</option><option>combat</option><option>control</option><option>damage</option><option>scout</option><option>stealth</option><option>transport</option><option>swim</option><option>climb</option></select><select id="formSort" aria-label="Sort results"><option value="name">Name</option><option value="cr-asc">CR low to high</option><option value="cr-desc">CR high to low</option><option value="role-name">Role, then name</option><option value="known-first">Known first</option><option value="speed-desc">Fastest first</option></select></div></details>
               <label class="spellField" id="swapFormField">Replace known form <select id="swapForm"><option value="">Choose a form</option></select></label>
               <div id="formLibrary" class="library"></div>
-            </div></div></details>
+            </div></div>
+            <div id="inventoryManager" class="managerPane hidden" role="tabpanel" aria-labelledby="inventoryTab">
+              <div class="managerGroup">
+                <div class="top"><h3>Carried items</h3><button type="button" id="openItemCatalog" aria-haspopup="dialog">Add to inventory</button></div>
+                <div id="carriedItemList" class="library"></div>
+              </div>
+            </div>
+        </details>
       </section>
-      <div id="infoModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="infoTitle" aria-describedby="infoBody"><div class="modalCard" tabindex="-1"><div class="top"><h2 id="infoTitle"></h2><button id="closeInfo">Close</button></div><div id="infoBody" class="modalBody"></div></div></div>
+      <dialog id="itemCatalog" aria-labelledby="itemCatalogTitle">
+        <header class="top">
+          <h2 id="itemCatalogTitle">Add to inventory</h2>
+          <button type="button" id="closeItemCatalog" autofocus>Done</button>
+        </header>
+        <div class="filters catalogFilters">
+          <input type="search" id="itemSearch" placeholder="Search items" aria-label="Search items" autocomplete="off">
+          <select id="itemCategory" aria-label="Item category"><option value="">All categories</option></select>
+          <select id="itemRarity" aria-label="Item rarity"><option value="">All rarities</option><option value="unlisted">Rarity unlisted</option></select>
+          <label>Sort by <select id="itemSort">
+            <option value="name">Name A–Z</option>
+            <option value="name-desc">Name Z–A</option>
+            <option value="category">Category</option>
+            <option value="rarity-desc">Rarity (highest first)</option>
+            <option value="rarity-asc">Rarity (lowest first)</option>
+            <option value="price-asc">Price (lowest first)</option>
+            <option value="price-desc">Price (highest first)</option>
+            <option value="weight">Weight (lightest first)</option>
+            <option value="owned">Owned first</option>
+          </select></label>
+        </div>
+        <div id="itemCatalogResults">
+          <div id="itemCatalogList" class="library"></div>
+        </div>
+        <footer class="catalogFooter">
+          <div class="row wrap">
+            <p id="itemPageStatus" class="muted" role="status"></p>
+            <nav id="itemPages" class="row" aria-label="Item catalog pages" hidden>
+              <button type="button" id="previousItemPage">Previous</button>
+              <button type="button" id="nextItemPage">Next</button>
+            </nav>
+          </div>
+          <div class="row" id="catalogFeedback" hidden>
+            <p class="muted" id="catalogNotice" role="status"></p>
+            <button type="button" id="catalogUndo">Undo</button>
+          </div>
+        </footer>
+      </dialog>
+      <dialog id="infoModal" role="dialog" aria-modal="true" aria-labelledby="infoTitle" aria-describedby="infoBody">
+        <div class="top"><h2 id="infoTitle"></h2><button id="closeInfo" autofocus>Close</button></div>
+        <div id="infoBody" class="modalBody"></div>
+      </dialog>
       <dialog id="conditionEditor" aria-labelledby="pickerTitle">
         <form id="conditionForm">
           <header class="top">
@@ -115,6 +163,8 @@
     <script src="application/load-errors.js"></script>
     <script src="application/document.js"></script>
     <script src="characters/kincaid.js"></script>
+    <script src="catalogs/items.js"></script>
+    <script src="application/item-catalog.js"></script>
     <script src="catalogs/beasts-2014.js"></script>
     <script src="catalogs/base-creatures.js"></script>
     <script src="catalogs/creatures.js"></script>
@@ -142,6 +192,7 @@
     <script src="application/active-effects.js"></script>
     <script src="application/resources.js"></script>
     <script src="application/catalog-lists.js"></script>
+    <script src="application/inventory.js"></script>
     <script src="application/interactions.js"></script>
     <script src="pwa.js"></script>
   </body></html>

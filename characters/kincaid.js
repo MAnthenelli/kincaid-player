@@ -6,8 +6,6 @@ const kincaid = {
   maximumHitPoints: 51,
   abilityScores: { strength: 8, dexterity: 12, constitution: 16, intelligence: 8, wisdom: 18, charisma: 13 },
   savingThrowProficiencies: ["intelligence", "wisdom"],
-  studdedLeatherEquipped: true,
-  shieldEquipped: true,
   walkingSpeed: 30,
   darkvision: 60,
   size: "Medium",
@@ -19,6 +17,11 @@ const kincaid = {
   maximumWildShapeUses: 3,
   shortRestWildShapeRecovery: 1,
   spellSlotMaximums: {1: 4, 2: 3, 3: 3},
+  startingInventory: {
+    TIV3B1vbrVHIhQAm: 1, // Studded Leather Armor
+    sSs3hSzkKBMNBgTs: 1  // Shield
+  },
+  startingEquippedItemIds: ["TIV3B1vbrVHIhQAm", "sSs3hSzkKBMNBgTs"],
   startingForms: ["snake", "allo", "tiger", "elk", "gspider", "plesio"],
   // Starting selection for a fresh sheet; the PDF lists options without ten daily picks.
   startingPreparedSpells: ["Animal Friendship", "Charm Person", "Create or Destroy Water", "Detect Magic", "Detect Poison and Disease", "Entangle", "Faerie Fire", "Fog Cloud", "Goodberry", "Healing Word"],
@@ -38,7 +41,6 @@ const proficiencyBonus = 2 + Math.floor((kincaid.druidLevel - 1) / 4);
 const spellAttackBonus = proficiencyBonus + abilityModifier("wisdom");
 const spellSaveDC = 8 + spellAttackBonus;
 const breathSaveDC = 8 + proficiencyBonus + abilityModifier("constitution");
-const equippedArmorClass = (kincaid.studdedLeatherEquipped ? 12 : 10) + abilityModifier("dexterity") + (kincaid.shieldEquipped ? 2 : 0);
 const circleFormArmorClass = 13 + abilityModifier("wisdom");
 const circleFormTemporaryHP = 3 * kincaid.druidLevel;
 const spellSlotLevels = Object.keys(kincaid.spellSlotMaximums).map(Number);

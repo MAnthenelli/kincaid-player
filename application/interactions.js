@@ -136,35 +136,6 @@ document.addEventListener("change", (e) => {
     if (wrap) wrap.classList.toggle("hidden", !e.target.checked);
   }
 });
-elements.closeInfo.onclick = closeInfo;
-elements.infoModal.onclick = (e) => {
-  if (e.target === elements.infoModal) closeInfo();
-};
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !elements.infoModal.classList.contains("hidden")) {
-    const popup = getElementById("rollExplanation");
-    if (popup.hidePopover && popup.matches(":popover-open")) return;
-    e.preventDefault();
-    closeInfo();
-  }
-  if (e.key === "Tab" && !elements.infoModal.classList.contains("hidden")) {
-    let focusable = [
-      ...elements.infoModal.querySelectorAll(
-        'button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])'
-      )
-    ].filter((x) => !x.disabled);
-    if (!focusable.length) return;
-    let first = focusable[0],
-      last = focusable[focusable.length - 1];
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
-    }
-  }
-});
 document.addEventListener("click", (e) => {
   let t = e.target;
   if (t.disabled) return;
@@ -212,20 +183,14 @@ document.addEventListener("click", (e) => {
           !applicationState.radiantStrikeActive)
     );
   if (t.dataset.manager) {
-    elements.spellManager.classList.toggle(
-      "hidden",
-      t.dataset.manager !== "spells"
-    );
-    elements.formManager.classList.toggle(
-      "hidden",
-      t.dataset.manager !== "forms"
-    );
     document.querySelectorAll("[data-manager]").forEach((b) => {
       let active = b === t;
+      getElementById(b.getAttribute("aria-controls")).classList.toggle("hidden", !active);
       b.classList.toggle("active", active);
       b.setAttribute("aria-selected", String(active));
       b.tabIndex = active ? 0 : -1;
     });
+    renderInventory();
   }
   if (t.id === "slotToShape")
     slotToShape(+getElementById("resurgenceLevel").value);
@@ -441,6 +406,8 @@ document.addEventListener("click", event => {
   const button = event.target.closest("[data-roll-reason]");
   if (!button) return;
   const popup = getElementById("rollExplanation");
+  const host = button.closest("dialog") || document.body;
+  if (popup.parentElement !== host) host.append(popup);
   popup.textContent = button.dataset.rollReason;
   popup.showPopover();
   const rect = button.getBoundingClientRect();

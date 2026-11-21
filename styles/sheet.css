@@ -102,12 +102,12 @@ main > .top { margin-bottom: 12px }
 .item > * { min-width: 0 }
 .badge { color: var(--muted) }
 .infoBtn { min-width: 34px }
-.modal { position: fixed; inset: 0; display: grid; place-items: center; background: #0009; z-index: 40; padding: 12px }
-.modalCard,dialog { background: var(--panel); color: var(--text); border: 1px solid var(--edge); border-radius: 10px; padding: 16px; width: min(100%,36rem); max-height: 90dvh; overflow: auto }
+dialog { background: var(--panel); color: var(--text); border: 1px solid var(--edge); border-radius: 10px; padding: 16px; max-height: 90dvh; overflow: auto }
 .modalBody { margin-top: 8px; overflow-wrap: anywhere }
 .modalBody p { margin: 8px 0 }
 dialog { margin: auto; width: min(calc(100% - 24px),32rem) }
 dialog::backdrop { background: #0009 }
+#infoModal { width: min(calc(100% - 24px),36rem) }
 #conditionForm { display: grid; gap: 8px }
 #conditionForm label { display: grid; gap: 4px; font-size: 14px }
 #conditionChoices { display: grid; grid-template-columns: repeat(auto-fit,minmax(115px,1fr)); gap: 4px; max-height: min(32dvh,14rem); overflow: auto; padding: 4px }
@@ -148,7 +148,7 @@ dialog::backdrop { background: #0009 }
   #action-economy .g3,#resources .g3 { grid-template-columns: minmax(0,1fr); gap: 4px }
   .resourceRow { grid-template-columns: minmax(60px,1fr) auto 2.4em }
   .pip { width: 36px }
-  .modalCard { max-height: 94dvh }
+  #infoModal { max-height: 94dvh }
 }
 @media (min-width: 701px) {
   #conditionEditor[open] { margin: 0; inset: var(--picker-top,12px) auto auto var(--picker-left,12px); max-height: min(90dvh,calc(100dvh - var(--picker-top,12px) - 8px)) }
@@ -164,3 +164,26 @@ dialog::backdrop { background: #0009 }
 .attack + .attack { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 6px }
 
 .effectEntries details:not([open]) .entryNote { display: inline-block; max-width: min(26ch,45vw); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom }
+
+.managerMenu { flex-wrap: wrap }
+#carriedItemList { grid-template-columns: 1fr }
+.inventoryControls { flex: none; flex-wrap: wrap; gap: 4px }
+.inventoryControls [data-decrease-item] { min-width: 34px }
+.inventoryItem > :first-child,.catalogItem > :first-child { overflow-wrap: anywhere }
+@media (max-width: 480px) {
+  .inventoryItem { flex-wrap: wrap }
+  .inventoryItem > :first-child { flex-basis: 100% }
+}
+#itemCatalog { width: min(calc(100% - 24px),46rem) }
+#itemCatalog[open] { display: flex; flex-direction: column }
+.catalogFilters > input { flex-basis: 100% }
+.catalogFilters label { display: flex; align-items: center; gap: 6px; font-size: 13px }
+#itemCatalogResults { overflow: auto; overscroll-behavior: contain; padding-inline: 4px; margin-inline: -4px }
+#itemCatalogList { margin-top: 0 }
+.catalogItem .inventoryControls { flex-wrap: nowrap }
+.catalogFooter { padding-top: 8px; border-top: 1px solid var(--line) }
+.catalogFooter > .row { justify-content: space-between }
+#catalogFeedback { margin-top: 8px }
+.itemDescription { overflow-x: auto }
+.itemDescription table { border-collapse: collapse }
+.itemDescription :is(th,td) { border: 1px solid var(--line); padding: 4px 6px; text-align: left }

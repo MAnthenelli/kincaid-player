@@ -11,6 +11,8 @@ const createFreshState = () => ({
   knownFormIds: [...kincaid.startingForms],
   knownCantripNames: [...kincaid.startingCantrips],
   preparedSpellNames: kincaid.startingPreparedSpells.filter(name => PREPARED_SPELL_OPTIONS.includes(name)).slice(0, kincaid.maximumPreparedSpells),
+  inventory: { ...kincaid.startingInventory },
+  equippedItemIds: [...kincaid.startingEquippedItemIds],
   activeEffects: [],
   conditions: [],
   concentrationEffect: null,
@@ -96,6 +98,24 @@ function normalizeConditions(raw) {
   }
   return entries.filter(entry => entry.level !== 0);
 }
+function normalizeInventory(value, defaults) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return defaults;
+  return Object.fromEntries(Object.entries(value).filter(([id, quantity]) =>
+    itemById.has(id) && Number.isSafeInteger(quantity) && quantity > 0));
+}
+function normalizeEquippedItems(ids, inventory) {
+  const equipped = new Set();
+  const occupied = new Set();
+  for (const id of ids) {
+    const item = itemById.get(id);
+    if (!canEquipItem(item) || !inventory[id]) continue;
+    const slot = armorSlot(item);
+    if (occupied.has(slot)) continue;
+    equipped.add(id);
+    if (slot) occupied.add(slot);
+  }
+  return [...equipped];
+}
 function normalizeState(raw) {
   let base = createFreshState(),
     repaired = false;
@@ -168,6 +188,11 @@ function normalizeState(raw) {
     repaired = true;
   }
   if (!form) radiant = false;
+  const inventory = normalizeInventory(raw.inventory, base.inventory);
+  const equippedItemIds = normalizeEquippedItems(
+    Array.isArray(raw.equippedItemIds) ? raw.equippedItemIds : base.equippedItemIds,
+    inventory
+  );
   let state = {
     ...base,
     v: 71,
@@ -189,6 +214,8 @@ function normalizeState(raw) {
     knownFormIds: known,
     knownCantripNames: cantrips,
     preparedSpellNames: prep,
+    inventory,
+    equippedItemIds,
     conditions,
     activeEffects: effects,
     concentrationEffect: conc,
@@ -216,6 +243,8 @@ function normalizeState(raw) {
       knownFormIds: known,
       knownCantripNames: cantrips,
       preparedSpellNames: prep,
+      inventory: raw.inventory === undefined ? base.inventory : raw.inventory,
+      equippedItemIds: raw.equippedItemIds === undefined ? equippedItemIds : raw.equippedItemIds,
       activeEffects: effects,
       concentrationEffect: conc,
       size: null,
