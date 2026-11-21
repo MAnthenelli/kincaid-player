@@ -9,19 +9,19 @@
   "background_color": "#111619",
   "icons": [
     {
-      "src": "./icons/kincaid-192.png",
+      "src": "./icons/kincaid-d20-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./icons/kincaid-512.png",
+      "src": "./icons/kincaid-d20-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./icons/kincaid-512.png",
+      "src": "./icons/kincaid-d20-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

@@ -1,13 +1,14 @@
 // Use a fresh release ID whenever any runtime file changes.
-const RELEASE = "10";
+const RELEASE = "11";
 const prefix = "kincaid-sheet:" + self.registration.scope + ":";
 const cacheName = prefix + RELEASE;
 const entry = new URL("index.html", self.registration.scope).href;
 const files = [
   "index.html",
+  "./icons/favicon-d20.ico",
   "./manifest.webmanifest",
-  "./icons/kincaid-180.png",
-  "./icons/kincaid-192.png",
+  "./icons/kincaid-d20-180.png",
+  "./icons/kincaid-d20-192.png",
   "styles/sheet.css",
   "application/load-errors.js",
   "application/document.js",
@@ -46,7 +47,7 @@ const files = [
   "application/feats.js",
   "application/interactions.js",
   "pwa.js",
-  "icons/kincaid-512.png"
+  "icons/kincaid-d20-512.png"
 ];
 
 self.addEventListener("install", event => {
