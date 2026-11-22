@@ -1,4 +1,12 @@
 const EFFECT_DEFINITIONS = {
+  "Find Familiar": {
+    name: "Find Familiar",
+    baseLevel: 1,
+    duration: "Until Long Rest",
+    category: "battlefield",
+    requiresConcentration: false,
+    choice: null
+  },
   Longstrider: {
     name: "Longstrider",
     speedDelta: 10,

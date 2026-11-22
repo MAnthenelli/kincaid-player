@@ -3,9 +3,13 @@
 const kincaid = {
   grants: ["cold-resistance"],
   druidLevel: 6,
+  hitDieSize: 8,
   maximumHitPoints: 51,
   abilityScores: { strength: 8, dexterity: 12, constitution: 16, intelligence: 8, wisdom: 18, charisma: 13 },
   savingThrowProficiencies: ["intelligence", "wisdom"],
+  primalOrder: "Magician",
+  skillProficiencies: {Insight: 1, Nature: 1, Perception: 1, Persuasion: 1},
+  skillProficiencySources: {}, // Insight, Nature, Perception and Persuasion grant choices are unconfirmed.
   walkingSpeed: 30,
   darkvision: 60,
   size: "Medium",
@@ -33,21 +37,21 @@ const kincaid = {
   startingPreparedSpells: ["Animal Friendship", "Charm Person", "Create or Destroy Water", "Detect Magic", "Detect Poison and Disease", "Entangle", "Faerie Fire", "Fog Cloud", "Goodberry", "Healing Word"],
   startingCantrips: ["Elementalism", "Guidance", "Message", "Resistance"]
 };
-// Skill bonuses from the character sheet. Physical modifiers change in Wild Shape.
+// Governing abilities for standard skill checks. Physical modifiers change in Wild Shape.
 const characterSkills = {
-  Acrobatics: ["DEX", 1], "Animal Handling": ["WIS", 4], Arcana: ["INT", 3],
-  Athletics: ["STR", -1], Deception: ["CHA", 1], History: ["INT", -1],
-  Insight: ["WIS", 7], Intimidation: ["CHA", 1], Investigation: ["INT", -1],
-  Medicine: ["WIS", 4], Nature: ["INT", 6], Perception: ["WIS", 7],
-  Performance: ["CHA", 1], Persuasion: ["CHA", 4], Religion: ["INT", -1],
-  "Sleight of Hand": ["DEX", 1], Stealth: ["DEX", 1], Survival: ["WIS", 4]
+  Acrobatics: "DEX", "Animal Handling": "WIS", Arcana: "INT",
+  Athletics: "STR", Deception: "CHA", History: "INT",
+  Insight: "WIS", Intimidation: "CHA", Investigation: "INT",
+  Medicine: "WIS", Nature: "INT", Perception: "WIS",
+  Performance: "CHA", Persuasion: "CHA", Religion: "INT",
+  "Sleight of Hand": "DEX", Stealth: "DEX", Survival: "WIS"
 };
-const abilityModifier = ability => Math.floor((kincaid.abilityScores[ability] - 10) / 2);
+const abilityModifier = ability => Math.floor(((typeof applicationState === "undefined" ? kincaid.abilityScores[ability] : abilityScore(ability)) - 10) / 2);
 const proficiencyBonus = 2 + Math.floor((kincaid.druidLevel - 1) / 4);
-const spellAttackBonus = proficiencyBonus + abilityModifier("wisdom");
-const spellSaveDC = 8 + spellAttackBonus;
-const breathSaveDC = 8 + proficiencyBonus + abilityModifier("constitution");
-const circleFormArmorClass = 13 + abilityModifier("wisdom");
+const spellAttackBonus = () => proficiencyBonus + abilityModifier("wisdom");
+const spellSaveDC = () => 8 + spellAttackBonus();
+const breathSaveDC = () => 8 + proficiencyBonus + abilityModifier("constitution");
+const circleFormArmorClass = () => 13 + abilityModifier("wisdom");
 const circleFormTemporaryHP = 3 * kincaid.druidLevel;
 const spellSlotLevels = Object.keys(kincaid.spellSlotMaximums).map(Number);
 const MAX = kincaid.maximumHitPoints;

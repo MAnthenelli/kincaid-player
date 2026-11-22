@@ -1,14 +1,23 @@
-elements.damage.onclick = () =>
+elements.damage.onclick = () => {
+  const damage = readAmount();
   change(() => {
-    let d = readAmount(),
-      t = Math.min(d, applicationState.temporaryHitPoints);
-    applicationState.temporaryHitPoints -= t;
+    const absorbed = Math.min(damage, applicationState.temporaryHitPoints);
+    applicationState.temporaryHitPoints -= absorbed;
     applicationState.currentHitPoints = Math.max(
       0,
-      applicationState.currentHitPoints - d + t
+      applicationState.currentHitPoints - damage + absorbed
     );
     if (!applicationState.currentHitPoints) clearAtZeroHP();
-  }, () => `Damage applied · ${applicationState.currentHitPoints}/${currentMaxHP()} HP · ${applicationState.temporaryHitPoints} temp HP`);
+  }, () => {
+    const notice = `Damage applied · ${applicationState.currentHitPoints}/${currentMaxHP()} HP · ${applicationState.temporaryHitPoints} temp HP`;
+    if (!damage || !(applicationState.concentrationEffect || applicationState.pendingCast)) return notice;
+    const dc = Math.min(30, Math.max(10, Math.floor(damage / 2)));
+    const form = getFormRecord(applicationState.activeFormId);
+    const [, base] = getFormSavingThrowRows(form).find(([ability]) => ability === "CON");
+    const {value, result} = resolveRoll(base, "concentration", "CON");
+    return `${notice}\nSave to maintain Concentration · DC ${dc} · CON ${value}${result ? " · " + result : ""}`;
+  });
+};
 elements.heal.onclick = () =>
   change(() => {
     applicationState.currentHitPoints = Math.min(
@@ -58,55 +67,10 @@ function slotToShape(l) {
     applicationState.wildShapeUses = 1;
   }, `Level ${l} slot spent. Wild Shape: 1/${kincaid.maximumWildShapeUses}.`);
 }
-elements.shortRest.onclick = () =>
-  confirm(`Take a short rest? Wild Shape uses: ${applicationState.wildShapeUses} → ${Math.min(kincaid.maximumWildShapeUses, applicationState.wildShapeUses + kincaid.shortRestWildShapeRecovery)}.`) &&
-  change(
-    () =>
-      (applicationState.wildShapeUses = Math.min(
-        kincaid.maximumWildShapeUses,
-        applicationState.wildShapeUses + kincaid.shortRestWildShapeRecovery
-      )), "Short rest complete."
-  );
-elements.longRest.onclick = () =>
-  confirm(`Take a long rest? HP ${applicationState.currentHitPoints} → ${MAX}. Restore spell slots, Wild Shape, breath, and flight. Clear temp HP, leave your form, and end concentration and temporary spell effects. Exhaustion decreases by one level.`) &&
-  change(
-    () =>
-      Object.assign(applicationState, {
-        conditions: conditionsAfterLongRest(),
-        currentHitPoints: currentMaxHP(),
-        wildShapeUses: kincaid.maximumWildShapeUses,
-        spellSlots: { ...kincaid.spellSlotMaximums },
-        breathWeaponUses: proficiencyBonus,
-        draconicFlightState: "ready",
-        reverse: false,
-        activeFormId: null,
-        temporaryHitPoints: 0,
-        activeEffects: applicationState.activeEffects.filter(
-          isIndefiniteBattlefieldEffect
-        ),
-        concentrationEffect: null,
-        size: null,
-        long: false,
-        radiantStrikeActive: false,
-        deathSaves: { successes: 0, failures: 0 }
-      }),
-    "Long Rest complete."
-  );
-document.addEventListener("input", (e) => {
-  if (["spellSearch", "formSearch"].includes(e.target.id)) renderLibraries();
-});
 document.addEventListener("change", (e) => {
-  if (
-    [
-      "spellLevel",
-      "spellSchool",
-      "spellSort",
-      "formCR",
-      "formRoleFilter", "formEdition", "swapForm",
-      "formSort"
-    ].includes(e.target.id)
-  )
-    renderLibraries();
+  if (e.target.id === "breathShape") {
+    getElementById("useBreath").disabled = !Object.hasOwn(breathShapes, e.target.value) || !applicationState.breathWeaponUses || conditionModifiers().incapacitated;
+  }
   if (e.target.id === "turnForm") {
     let b = document.querySelector('[data-form-info="current"]'),
       id = e.target.value;
@@ -114,23 +78,12 @@ document.addEventListener("change", (e) => {
     b.hidden = !id;
     getElementById("shapeNow").hidden = !id;
     let label = id
-      ? `${getFormRecord(id).name} information`
-      : "Selected form information";
+      ? `${getFormRecord(id).name} details`
+      : "Selected form details";
     b.setAttribute("aria-label", label);
     b.title = label;
   }
-  if (/^(turn|bonus|reaction)Spell$/.test(e.target.id))
-    progressive(e.target.id.replace("Spell", ""), e.target.value);
-  if (/^(turn|bonus|reaction)Slot$/.test(e.target.id)) {
-    let kind = e.target.id.replace("Slot", ""),
-      root = getElementById(kind + "Progressive"),
-      meta = root?.querySelector(".spellMeta .levelPips"),
-      label = root?.querySelector(".spellMeta .muted");
-    if (meta) meta.textContent = "◇".repeat(+e.target.value);
-    if (label)
-      label.textContent = `Level ${e.target.value} ${SPELL_SCHOOLS[getElementById(kind + "Spell").value] || ""}`;
-  }
-  if (/^(turn|bonus|reaction)Self$/.test(e.target.id)) {
+  if (/^(all|turn|bonus|reaction|companion)Self$/.test(e.target.id)) {
     let kind = e.target.id.replace("Self", ""),
       wrap = getElementById(kind + "HealingWrap");
     if (wrap) wrap.classList.toggle("hidden", !e.target.checked);
@@ -159,7 +112,6 @@ document.addEventListener("click", (e) => {
       () => (applicationState.draconicFlightState = "spent"),
       "Draconic Flight ended."
     );
-  if (t.dataset.cast) castFrom(t.dataset.cast, t.hasAttribute("data-ritual"));
   if (t.id === "shapeNow") transform(getElementById("turnForm").value);
   if (t.id === "leaveNow")
     change(() => {
@@ -167,14 +119,16 @@ document.addEventListener("click", (e) => {
       applicationState.radiantStrikeActive = false;
     }, "Left Wild Shape.");
   if (t.id === "useBreath") {
-    if (!applicationState.breathWeaponUses)
-      return showNotice("No Breath Weapon uses.");
-    change(() => applicationState.breathWeaponUses--, "Cold Breath used.");
+    const picker = getElementById("breathShape");
+    if (!applicationState.breathWeaponUses || !Object.hasOwn(breathShapes, picker.value) || conditionModifiers().incapacitated) return;
+    const shape = breathShapes[picker.value];
+    picker.value = "";
+    change(() => applicationState.breathWeaponUses--, `Cold Breath · ${shape}`);
   }
   if (t.id === "useFlight") {
     if (applicationState.draconicFlightState !== "ready")
       return showNotice("Draconic Flight is not ready.");
-    change(() => (applicationState.draconicFlightState = "active"));
+    change(() => (applicationState.draconicFlightState = "active"), "Draconic Flight active · 10 min");
   }
   if (t.id === "radiantToggle")
     change(
@@ -190,6 +144,7 @@ document.addEventListener("click", (e) => {
       b.setAttribute("aria-selected", String(active));
       b.tabIndex = active ? 0 : -1;
     });
+    renderSelections();
     renderInventory();
     renderFeats();
   }
@@ -209,21 +164,13 @@ document.addEventListener("click", (e) => {
     }, "Wild Shape spent. One Level 1 slot restored.");
   }
   if (t.dataset.resource) {
-    let r = t.dataset.resource,
-      v = +t.dataset.value,
-      current =
-        r === "wild"
-          ? applicationState.wildShapeUses
-          : r === "breath"
-            ? applicationState.breathWeaponUses
-            : r === "deathS"
-              ? applicationState.deathSaves.successes
-              : r === "deathF"
-                ? applicationState.deathSaves.failures
-                : applicationState.spellSlots[+r.slice(4)],
-      next = v === current ? v - 1 : v;
+    const r = t.dataset.resource;
+    const v = +t.dataset.value;
+    const current = resourceValue(r);
+    const next = v === current ? v - 1 : v;
     change(() => {
       if (r === "wild") applicationState.wildShapeUses = next;
+      else if (r === "hitDice") applicationState.hitDiceRemaining = next;
       else if (r === "breath") applicationState.breathWeaponUses = next;
       else if (r === "deathS") applicationState.deathSaves.successes = next;
       else if (r === "deathF") applicationState.deathSaves.failures = next;
@@ -237,53 +184,6 @@ document.addEventListener("click", (e) => {
     );
   if (t.dataset.end)
     change(() => endEffect(t.dataset.end, t.dataset.effectOrder === undefined ? undefined : t.dataset.effectOrder === "legacy" ? null : Number(t.dataset.effectOrder)), `${t.dataset.end} ended.`);
-  if (t.dataset.form) {
-    const id = t.dataset.form;
-    const known = applicationState.knownFormIds;
-    const outgoing = elements.swapForm.value;
-    if (known.includes(id)) {
-      if (applicationState.activeFormId === id) return showNotice("Leave this form before removing it from your known forms.");
-      change(() => { applicationState.knownFormIds = known.filter(formId => formId !== id); });
-    } else if (known.length < kincaid.maximumKnownForms) {
-      change(() => known.push(id));
-    } else if (outgoing && known.includes(outgoing)) {
-      const label = formId => getFormRecord(formId).name + " (" + getFormRuleset(getFormRecord(formId)) + ")";
-      change(() => { known[known.indexOf(outgoing)] = id; }, `Replaced ${label(outgoing)} with ${label(id)}.`);
-    } else {
-      showNotice("Choose a known form to replace.");
-    }
-  }
-  if (t.dataset.cantrip) {
-    let x = t.dataset.cantrip;
-    if (
-      !applicationState.knownCantripNames.includes(x) &&
-      applicationState.knownCantripNames.length >= MAX_CANTRIPS
-    )
-      showNotice(
-        `Kincaid already has ${MAX_CANTRIPS} selected cantrips. Remove one before selecting another.`
-      );
-    else
-      change(
-        () => {
-          if (applicationState.knownCantripNames.includes(x))
-            applicationState.knownCantripNames =
-              applicationState.knownCantripNames.filter((y) => y !== x);
-          else applicationState.knownCantripNames.push(x);
-        },
-        applicationState.knownCantripNames.includes(x)
-          ? `${x} removed from selected cantrips.`
-          : `${x} selected.`
-      );
-  }
-  if (t.dataset.prep)
-    change(() => {
-      let x = t.dataset.prep;
-      if (applicationState.preparedSpellNames.includes(x))
-        applicationState.preparedSpellNames =
-          applicationState.preparedSpellNames.filter((y) => y !== x);
-      else if (applicationState.preparedSpellNames.length < kincaid.maximumPreparedSpells)
-        applicationState.preparedSpellNames.push(x);
-    });
 });
 const conditionForm = getElementById("conditionForm");
 const levelControl = getElementById("exhaustionLevel");
@@ -352,22 +252,10 @@ getElementById("openEffects").onclick = () => {
   conditionForm.reset();
   renderEffectChoices();
   picker.showModal();
-  if (window.matchMedia("(min-width: 701px)").matches) {
-    const anchor = getElementById("openEffects").getBoundingClientRect();
-    const left = Math.max(12, Math.min(anchor.left, innerWidth - picker.offsetWidth - 12));
-    const top = Math.max(12, Math.min(anchor.bottom + 6, innerHeight - picker.offsetHeight - 12));
-    picker.style.setProperty("--picker-left", left + "px");
-    picker.style.setProperty("--picker-top", top + "px");
-  }
+  picker.querySelector(".dialogBody").scrollTop = 0;
   effectSearch.focus();
 };
-getElementById("closeEffects").onclick = () => picker.close();
-picker.addEventListener("keydown", event => {
-  if (event.key === "Escape") {
-    event.preventDefault();
-    picker.close();
-  }
-});
+wireDialogDismissal(picker, getElementById("closeEffects"));
 picker.addEventListener("close", () => getElementById("openEffects").focus({preventScroll: true}));
 renderEffectChoices();
 conditionForm.onsubmit = event => {
@@ -403,17 +291,63 @@ conditionForm.onsubmit = event => {
 };
 render();
 
+const detailsPopup = getElementById("rollExplanation");
+let detailsOpener;
+window.addEventListener("resize", () => {
+  if (detailsPopup.matches(":popover-open")) detailsPopup.hidePopover();
+});
+document.addEventListener("scroll", event => {
+  if (event.target !== detailsPopup && detailsPopup.matches(":popover-open")) detailsPopup.hidePopover();
+}, {capture: true, passive: true});
+detailsPopup.addEventListener("toggle", event => {
+  if (event.newState === "closed" && !detailsPopup.matches(":popover-open"))
+    detailsOpener?.setAttribute("aria-expanded", "false");
+});
 document.addEventListener("click", event => {
   const button = event.target.closest("[data-roll-reason]");
   if (!button) return;
-  const popup = getElementById("rollExplanation");
+  const popup = detailsPopup;
+  const alreadyOpen = popup.matches(":popover-open");
+  if (alreadyOpen) popup.hidePopover();
+  detailsOpener?.setAttribute("aria-expanded", "false");
+  if (alreadyOpen && detailsOpener === button) return;
+  detailsOpener = button;
   const host = button.closest("dialog") || document.body;
   if (popup.parentElement !== host) host.append(popup);
-  popup.textContent = button.dataset.rollReason;
-  popup.showPopover();
+  const title = getElementById("popoverTitle");
+  const heading = button.dataset.detailTitle || (button.classList.contains("spellProperty") ? button.getAttribute("aria-label") : "");
+  title.textContent = heading || "Details";
+  title.classList.toggle("srOnly", !heading);
+  getElementById("popoverBody").textContent = button.dataset.rollReason;
+  popup.showPopover({source: button});
+  button.setAttribute("aria-expanded", "true");
   const rect = button.getBoundingClientRect();
   popup.style.left = Math.max(4, Math.min(rect.left, innerWidth - popup.offsetWidth - 4)) + "px";
-  popup.style.top = (rect.bottom + popup.offsetHeight < innerHeight ? rect.bottom + 4 : Math.max(4, rect.top - popup.offsetHeight - 4)) + "px";
+  const below = rect.bottom + 4;
+  const above = rect.top - popup.offsetHeight - 4;
+  const limit = innerHeight - popup.offsetHeight - 4;
+  popup.style.top = Math.max(4, below <= limit ? below : Math.min(above, limit)) + "px";
+  popup.focus({preventScroll: true});
+});
+
+const combatTabs = [...document.querySelectorAll(".combatTabs [role=tab]")];
+function selectCombatTab(selected) {
+  for (const tab of combatTabs) {
+    const active = tab === selected;
+    tab.setAttribute("aria-selected", String(active));
+    tab.tabIndex = active ? 0 : -1;
+    getElementById(tab.getAttribute("aria-controls")).hidden = !active;
+  }
+}
+combatTabs.forEach((tab, index) => {
+  tab.addEventListener("click", () => selectCombatTab(tab));
+  tab.addEventListener("keydown", event => {
+    const next = {ArrowLeft: 1 - index, ArrowRight: 1 - index, Home: 0, End: 1}[event.key];
+    if (next === undefined) return;
+    event.preventDefault();
+    selectCombatTab(combatTabs[next]);
+    combatTabs[next].focus();
+  });
 });
 
 const managerTabs = [...document.querySelectorAll("[data-manager]")];

@@ -1,5 +1,13 @@
+const initiateEffectDefinitions = Object.fromEntries(
+  initiateSpellRecords.filter(record => record.concentration || record.name === "Shield").map(record =>
+    [record.name, {
+      name: record.name, baseLevel: record.level, duration: record.duration, category: "character",
+      requiresConcentration: record.concentration, choice: null,
+      ...(record.name === "Shield" ? {armorClassDelta: 5} : {})
+    }])
+);
 function getEffectDefinition(effectName) {
-  return EFFECT_DEFINITIONS[effectName] || null;
+  return EFFECT_DEFINITIONS[effectName] || initiateEffectDefinitions[effectName] || null;
 }
 function getEffectCategoryLabel(effectDefinition) {
   return EFFECT_CATEGORY_LABEL[effectDefinition.category];
@@ -49,7 +57,7 @@ function aidBonus(state = applicationState) {
   return aid ? (aid.value - 1) * statusById.get("aid").hitPointsPerLevel : 0;
 }
 function currentMaxHP() {
-  return MAX + aidBonus();
+  return maximumBaseHP(applicationState.featChoices) + aidBonus();
 }
 function isIndefiniteBattlefieldEffect(effect) {
   let effectDefinition = getEffectDefinition(effect.n);
@@ -107,14 +115,30 @@ function liveModifiers() {
     speedDelta: 0, speedMultiplier: 1, sizeSteps: 0, stopMovement: false,
     armorClassDelta: 0, speedSources: [], sizeSources: [], armorSources: []
   };
+  for (const {record, effect} of activeConsumables()) {
+    if (effect.size) { totals.sizeSteps += effect.size; totals.sizeSources.push(record.name); }
+    if (effect.haste) {
+      totals.armorClassDelta += 2; totals.armorSources.push(record.name);
+      totals.speedMultiplier *= 2; totals.speedSources.push(record.name);
+    }
+  }
+  const armor = wornArmor();
+  if (armor?.strength && abilityScore("strength") < armor.strength) {
+    totals.speedDelta -= 10;
+    totals.speedSources.push("−10 ft from " + armor.name + " (Strength " + armor.strength + " required)");
+  }
   const resize = effectApplications("resize")[0];
   if (resize) {
-    totals.sizeSteps = statusById.get("resize").sizeSteps[resize.value];
+    totals.sizeSteps += statusById.get("resize").sizeSteps[resize.value];
     totals.sizeSources.push(`${resize.source}: one size category ${totals.sizeSteps > 0 ? "larger" : "smaller"}`);
   }
   for (const effect of applicationState.activeEffects) {
     if (!effect.self) continue;
     const definition = getEffectDefinition(effect.n);
+    if (definition.armorClassDelta) {
+      totals.armorClassDelta += definition.armorClassDelta;
+      totals.armorSources.push(signedRoll(definition.armorClassDelta) + " AC from " + effect.n);
+    }
     const speed = definition.speedDelta || 0;
     const size = definition.choice?.sizeSteps?.[effect.choice] || 0;
     totals.speedDelta += speed;
@@ -174,6 +198,9 @@ function conditionModifiers() {
     const chosen = definition?.choice?.grants?.[spell.choice];
     if (chosen) addSource(chosen, spell.n);
   }
+  for (const item of activeConsumables()) {
+    if (item.effect.grant) addSource(item.effect.grant, item.record.name);
+  }
   const blocked = new Set();
   const records = [];
   for (const record of orderedStatuses) {
@@ -197,7 +224,7 @@ function conditionModifiers() {
     movement: records.map(r => r.movement).filter(Boolean).join(". ")
   };
 }
-function defenseDisplay() {
+function defenseDisplay(compact = false) {
   const mods = conditionModifiers();
   const {has} = mods;
   const sources = mods.sources("incomingAdvantage");
@@ -212,15 +239,21 @@ function defenseDisplay() {
     lines.push(sources.length || prone ? "If the attacker cannot see you, its Disadvantage cancels any Advantage" : "Attackers that cannot see you have Disadvantage");
     lines.push("Creatures that cannot see you cannot target you with effects requiring sight");
   }
+  if (hasSelfEffect("Shield")) lines.push("Magic Missile deals no damage while Shield lasts");
+  if (isGaseous()) lines.push("Resistance to nonmagical damage");
   if (has("criticalNearby")) lines.push("Hits from within 5 ft are critical");
   for (const field of ["resistance", "vulnerability", "damageImmunity", "immunity"]) {
     const values = [...new Set(mods.records.map(r => r[field]).filter(Boolean))];
     if (field === "immunity" && values.length) lines.push("Immune to " + values.map(id => statusById.get(id).name).join(", "));
     if (field !== "immunity" && values.length)
-      lines.push(({resistance:"Resistance to ", vulnerability:"Vulnerability to ", damageImmunity:"Damage immunity to "}[field]) + (values.includes("all") ? "all damage" : values.join(", ")));
+      lines.push(compact && field === "resistance" && values.length === 1 && values[0] === "cold"
+        ? "Cold resistance"
+        : ({resistance:"Resistance to ", vulnerability:"Vulnerability to ", damageImmunity:"Damage immunity to "}[field]) + (values.includes("all") ? "all damage" : values.join(", ")));
   }
   lines.push(...mods.records.map(r => r.defenseNote).filter(Boolean));
-  return explainedRoll(lines.join(" · "), [...new Set([...sources, ...mods.sources("prone"), ...mods.sources("unseen")])]);
+  const origins = [...new Set([...sources, ...mods.sources("prone"), ...mods.sources("unseen")])];
+  if (compact) return lines.map(line => `<span class="defenseFact">${explainedRoll(line, origins)}</span>`).join("");
+  return explainedRoll(lines.join(" · "), origins);
 }
 function signedRoll(value) {
   return value >= 0 ? "+" + value : String(value);
@@ -232,25 +265,43 @@ function conditionHint(text) {
 // A modified value doubles as the control for its arithmetic and sources.
 function explainedRoll(label, reasons) {
   if (!reasons.length) return label;
-  const reason = reasons.join(". ").replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-  return `<button type="button" class="rollValue" data-roll-reason="${reason}" aria-controls="rollExplanation" aria-haspopup="dialog">${label}</button>`;
+  return detailButton(label, reasons.join(". "), "rollValue");
 }
-function rollDisplay(base, kind, ability = "", skill = "", suffix = "", afterRoll = "") {
+
+function detailButton(content, explanation, className, label = "") {
+  const escape = text => String(text).replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+  const name = label ? ` aria-label="${escape(label)}"` : "";
+  return `<button type="button" class="${className}" data-roll-reason="${escape(explanation)}" aria-controls="rollExplanation" aria-haspopup="dialog" aria-expanded="false"${name}>${content}</button>`;
+}
+function resolveRoll(base, kind, ability = "", skill = "") {
   const {has, d20, sources, records, origins, describe} = conditionModifiers();
   const advantage = [], disadvantage = [], qualifiers = [], reasons = [];
   const passive = kind === "passive";
   const check = passive || kind === "check" || kind === "initiative";
   const attack = kind === "attack";
-  const save = kind === "save";
+  const concentration = kind === "concentration";
+  const save = kind === "save" || concentration;
+  const armor = wornArmor();
+  if (check && skill === "stealth" && armor?.properties?.includes("stealthDisadvantage"))
+    disadvantage.push(armor.name);
+  const untrained = untrainedArmor();
+  if (untrained && ["STR", "DEX"].includes(ability) && (check || save || attack) &&
+      !disadvantage.includes(untrained.name)) disadvantage.push(untrained.name + " without armor training");
+  if (concentration && hasFeat("war-caster")) advantage.push("War Caster");
+  if (save && isGaseous() && ["STR", "DEX", "CON"].includes(ability)) advantage.push("Potion of Gaseous Form");
   if (save && ["STR", "DEX"].includes(ability)) {
     const failures = sources("failPhysicalSaves");
-    if (failures.length) return explainedRoll("Auto-fail", ["Automatic failure from " + failures.join(", ")]);
+    if (failures.length) return {value: "Auto-fail", reasons: ["Automatic failure from " + failures.join(", ")], qualifiers, autoFail: true};
   }
   if (attack) {
+    if (hasFeat("grappler")) qualifiers.push("Advantage against a creature you grapple");
+    if (activeConsumables().some(({effect}) => effect.heroism)) qualifiers.push("Add 1d4 from Potion of Heroism");
     disadvantage.push(...sources("attackDisadvantage"));
     if (has("unseen")) qualifiers.push("Advantage if the target cannot see you");
     if (has("otherGrappler")) qualifiers.push("Disadvantage against targets other than the grappler");
   }
+  if (skill === "stealth" && gearActive(bootsOfElvenkind))
+    qualifiers.push("Advantage when moving silently from Boots of Elvenkind");
   if (check) disadvantage.push(...sources("checkDisadvantage"));
   if ((check || attack) && has("fearSource"))
     qualifiers.push("Disadvantage while the source is visible");
@@ -258,7 +309,14 @@ function rollDisplay(base, kind, ability = "", skill = "", suffix = "", afterRol
     advantage.push(...sources("initiativeAdvantage"));
     disadvantage.push(...sources("initiativeDisadvantage"));
   }
+  if (save) {
+    for (const gearId of applicationState.activeFormId ? [] : protectionGear())
+      reasons.push("+1 from " + itemById.get(gearId).name);
+    if (activeConsumables().some(({effect}) => effect.heroism)) qualifiers.push("Add 1d4 from Potion of Heroism");
+    if (activeConsumables().some(({record}) => record.id === "Fc6UfFNOnW80XMzi")) qualifiers.push("Advantage against poison");
+  }
   if (save && ability === "DEX") {
+    if (activeConsumables().some(({effect}) => effect.haste)) advantage.push("Potion of Speed");
     disadvantage.push(...sources("dexSaveDisadvantage"));
     if (!has("incapacitated") && Object.values(speedObj()).some(speed => speed > 0))
       advantage.push(...sources("dodge"));
@@ -271,6 +329,8 @@ function rollDisplay(base, kind, ability = "", skill = "", suffix = "", afterRol
   if ((save || check) && ability === "STR") {
     const resize = effectApplications("resize")[0];
     if (resize) (resize.value === "reduce" ? disadvantage : advantage).push(resize.source);
+    for (const {record, effect} of activeConsumables())
+      if (effect.size) (effect.size < 0 ? disadvantage : advantage).push(record.name);
   }
   for (const effect of applicationState.activeEffects.filter(item => item.self)) {
     if (check && effect.n === "Enhance Ability" && effect.choice?.slice(0, 3).toUpperCase() === ability)
@@ -280,12 +340,15 @@ function rollDisplay(base, kind, ability = "", skill = "", suffix = "", afterRol
     if (has("sightFails")) qualifiers.push("Sight-dependent checks fail");
     if (has("hearingFails")) qualifiers.push("Hearing-dependent checks fail");
   }
-  const traits = (advantage.length || disadvantage.length || qualifiers.length) ? getFormRecord(applicationState.activeFormId)?.traits || [] : [];
+  const traits = (attack || skill === "perception") ? getFormRecord(applicationState.activeFormId)?.traits || [] : [];
   if (attack && traits.some(trait => trait.name === "Pack Tactics"))
     qualifiers.push("Advantage if a conscious ally is within 5 ft of the target");
   if (skill === "perception") {
-    for (const trait of traits.filter(item => item.name.startsWith("Keen") && /advantage/i.test(item.description)))
-      qualifiers.push(trait.description.replace(/\.$/, ""));
+    for (const trait of traits.filter(item => item.name.startsWith("Keen") && /advantage/i.test(item.description))) {
+      const rule = trait.description.replace(/\.$/, "");
+      qualifiers.push(rule);
+      reasons.push(`${trait.name}: ${rule}`);
+    }
   }
   if (attack && has("protectCharmer")) qualifiers.push("Cannot attack the charmer");
   const result = advantage.length && disadvantage.length ? "Advantage and Disadvantage cancel" :
@@ -298,8 +361,8 @@ function rollDisplay(base, kind, ability = "", skill = "", suffix = "", afterRol
       if (qualifier) reasons.push(sources(field).join(", ") + ": " + qualifier);
     }
   }
-  if ((advantage.length || qualifiers.some(x => x.startsWith("Advantage"))) &&
-      (disadvantage.length || qualifiers.some(x => x.startsWith("Disadvantage"))))
+  if ((advantage.length || qualifiers.some(rule => /\badvantage\b/i.test(rule))) &&
+      (disadvantage.length || qualifiers.some(rule => /\bdisadvantage\b/i.test(rule))))
     reasons.push("When both apply, roll one d20");
   const passiveDelta = passive ? 5 * (Number(Boolean(advantage.length)) - Number(Boolean(disadvantage.length))) : 0;
   if (passiveDelta) reasons.push("Passive Perception " + signedRoll(passiveDelta) + " from " + result);
@@ -329,12 +392,14 @@ function rollDisplay(base, kind, ability = "", skill = "", suffix = "", afterRol
     const {level, note} = exhaustionEntry();
     adjustments.push(`−${-d20} (Exhaustion ${level}${note ? " · " + note : ""})`);
   }
-  const total = base + d20 + skillBonus + saveBonus;
+  const luck = (check || save) && gearActive(luckstone, true) ? 1 : 0;
+  if (luck) adjustments.push("+1 (Stone of Good Luck)");
+  const total = base + d20 + skillBonus + saveBonus + luck;
   if (adjustments.length)
     reasons.unshift(`${signedRoll(base)} ${adjustments.join(" ")} = ${signedRoll(total)}`);
   const value = passive ? String(total + passiveDelta) : signedRoll(total);
+  const rulings = [];
   if (attack) {
-    const rulings = [];
     const favorable = [];
     if (has("unseen")) favorable.push("the target cannot see you");
     if (traits.some(trait => trait.name === "Pack Tactics")) favorable.push("a conscious ally is within 5 ft of the target");
@@ -353,10 +418,40 @@ function rollDisplay(base, kind, ability = "", skill = "", suffix = "", afterRol
     }
     if (has("protectCharmer")) rulings.push("Cannot attack the charmer");
     if (favorable.some(rule => rule.includes("ally"))) reasons.push("Pack Tactics: Advantage with a conscious ally within 5 ft of the target");
-    const ruling = rulings.length ? `<small class="attackRuling">${rulings.join(" · ")}</small>` : "";
-    return explainedRoll(value + suffix, reasons) + afterRoll + ruling;
   }
-  return explainedRoll([value + suffix + (skillDie ? " + " + skillDie : ""), result, ...qualifiers].filter(Boolean).join(" · "), reasons);
+  return {value, skillDie, result, qualifiers, reasons, rulings};
+}
+
+function rollBadge(label) {
+  const letter = {Advantage: "A", Disadvantage: "D", Conditional: "?", "Roll normal": "="}[label];
+  if (!letter) return "";
+  return `<span class="rollBadge" data-mode="${letter}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 1.5 21.5 7v10L12 22.5 2.5 17V7Z M2.5 7 6 8.5 12 3 18 8.5 21.5 7 M2.5 17 6 15.5 12 21 18 15.5 21.5 17"/></svg><span aria-hidden="true">${letter}</span><span class="srOnly">${label}</span></span>`;
+}
+
+function rollMode(result, qualifiers) {
+  if (result === "Advantage and Disadvantage cancel") return "Roll normal";
+  if (qualifiers.length && !qualifiers.every(rule =>
+    (result === "Advantage" && /\badvantage\b/i.test(rule)) ||
+    (result === "Disadvantage" && /\bdisadvantage\b/i.test(rule))
+  )) return "Conditional";
+  return result;
+}
+
+function rollDisplay(base, kind, ability = "", skill = "", suffix = "", afterRoll = "") {
+  const {value, skillDie, result, qualifiers, reasons, rulings, autoFail} = resolveRoll(base, kind, ability, skill);
+  if (autoFail) return explainedRoll(value, reasons);
+  const total = value + suffix + (skillDie ? " + " + skillDie : "");
+  if (kind === "attack") {
+    const lines = [...new Set([...reasons, ...rulings])];
+    const restriction = rulings.find(rule => rule.startsWith("Cannot "));
+    const states = rulings.filter(rule => rule !== restriction);
+    const mode = states.length === 1 && ["Advantage", "Disadvantage"].includes(states[0]) ? states[0] : states.length ? "Conditional" : "";
+    return explainedRoll(total + rollBadge(mode), lines) + afterRoll +
+      (restriction ? `<small class="attackRuling">${restriction}</small>` : "");
+  }
+  const badge = rollBadge(rollMode(result, qualifiers));
+  const explanation = [...new Set([...reasons, ...qualifiers.filter(rule => !reasons.some(reason => reason.includes(rule)))])];
+  return explainedRoll(total + badge, explanation);
 }
 function harmfulTargetHint() {
   return conditionModifiers().has("protectCharmer") ? conditionHint("Cannot harm the charmer") : "";

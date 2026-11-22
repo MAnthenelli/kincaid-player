@@ -44,14 +44,17 @@ function featRow(root, feat, owned) {
 
   const controls = appendText(row, "div", "");
   controls.className = "row inventoryControls";
-  const info = collectionButton(controls, "ⓘ", feat.name + " information", owned ? "ownedFeatInfo" : "featInfo", feat.id);
+  const info = collectionButton(controls, "ⓘ", feat.name + " details", owned ? "ownedFeatInfo" : "featInfo", feat.id);
   info.className = "infoBtn";
   info.title = info.getAttribute("aria-label");
   if (owned) {
+    if (featChoiceRules[feat.id]) collectionButton(controls, "Choices", feat.name + " choices", "featChoices", feat.id);
     collectionButton(controls, count > 1 ? "Remove one" : "Remove", "Remove " + (count > 1 ? "one copy of " : "") + feat.name, "removeFeat", feat.id);
   } else {
     const add = collectionButton(controls, count && feat.repeatable ? "Add another" : "Add", "Add " + feat.name, "addFeat", feat.id);
-    add.disabled = count > 0 && !feat.repeatable;
+    const reason = featBlockReason(feat);
+    add.disabled = Boolean(reason || (count > 0 && !feat.repeatable));
+    if (reason) { add.title = reason; appendText(title, "small", reason); }
   }
 }
 
@@ -99,16 +102,22 @@ function openFeatInfo(id) {
   appendText(body, "p", [feat.category, ...featRequirements(feat), feat.repeatable && "Repeatable"]
     .filter(Boolean).join(" · ")).className = "muted";
   // The importer emits only allowlisted formatting tags, without attributes.
-  appendText(body, "div", "").innerHTML = feat.description;
-  appendText(body, "p", [feat.rules && feat.rules + " rules", feat.license, feat.sourcePath].filter(Boolean).join(" · ")).className = "muted";
+  const description = appendText(body, "div", "");
+  description.className = "featDescription";
+  description.innerHTML = feat.description;
+  appendInfoSource(body, [feat.rules && feat.rules + " rules", feat.license, feat.sourcePath]);
   showInfo();
 }
 
 function changeFeatCount(id, delta) {
   const feat = featById.get(id);
   const count = (applicationState.feats[id] || 0) + delta;
-  if (!feat || !Number.isSafeInteger(count) || count < 0 || (count > 1 && !feat.repeatable)) return;
+  if (!feat || (delta > 0 && featBlockReason(feat)) || !Number.isSafeInteger(count) || count < 0 || (count > 1 && !feat.repeatable)) return;
   change(() => {
+    if (delta < 0 && applicationState.featChoices[id]) {
+      applicationState.featChoices[id].pop();
+      if (!applicationState.featChoices[id].length) delete applicationState.featChoices[id];
+    }
     if (count) applicationState.feats[id] = count;
     else delete applicationState.feats[id];
   }, `${feat.name} ${delta > 0 ? "added" : "removed"}${count > 1 ? ` · ${count} owned` : ""}.`);
@@ -151,6 +160,10 @@ featCatalogList.addEventListener("click", event => {
     openFeatInfo(featInfo);
   }
   if (addFeat && !event.target.disabled) {
+    if (featChoiceRules[addFeat] && !featBlockReason(featById.get(addFeat))) {
+      openFeatChoices(addFeat, event.target, true);
+      return;
+    }
     changeFeatCount(addFeat, 1);
     showFeatCatalogFeedback();
     if (!featCatalog.contains(document.activeElement))
@@ -165,6 +178,7 @@ featCatalogUndo.onclick = () => {
 
 ownedFeatList.addEventListener("click", event => {
   const {ownedFeatInfo, removeFeat} = event.target.dataset;
+  if (event.target.dataset.featChoices) openFeatChoices(event.target.dataset.featChoices, event.target, false);
   if (ownedFeatInfo) {
     event.target.focus({preventScroll: true});
     openFeatInfo(ownedFeatInfo);

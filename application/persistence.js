@@ -52,6 +52,7 @@ function castMessage(name, level, spend, selfTarget, healing, ritual) {
     ritual ? `${name} cast as a ritual.` : `${name} cast.`,
     selfTarget ? "Target: Kincaid." : "",
     healing ? `Healing rolled: ${healing} HP.` : "",
+    name === "Goodberry" ? "10 berries added to Inventory. They last 24 hours of game time." : "",
     spend && level ? `Level ${level} slots · ${applicationState.spellSlots[level]}/${kincaid.spellSlotMaximums[level]} remaining.` : ""
   );
 }
@@ -80,6 +81,7 @@ function change(fn, msg = "") {
     if (!applicationState.currentHitPoints) clearAtZeroHP();
     else if (!snapshot.currentHitPoints) applicationState.deathSaves = {successes: 0, failures: 0};
   }
+  applicationState.currentHitPoints = Math.min(applicationState.currentHitPoints, currentMaxHP());
   syncDerivedState();
   if (!wasIncapacitated && conditionModifiers().incapacitated) {
     endConc();

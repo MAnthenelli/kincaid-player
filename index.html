@@ -18,17 +18,17 @@
     </nav>
     <div id="stickyState" class="stickyState"></div>
     <main>
-      <div class="top"><div><h1>Kincaid</h1><div class="muted">Level 6 Silver Dragonborn Moon Druid</div></div><div class="row"><button id="undo">Undo</button><button id="theme">Light</button></div></div>
+      <div class="top wrap"><div><h1>Kincaid</h1><div class="muted">Level 6 Silver Dragonborn Moon Druid</div></div><div class="row"><button id="undo">Undo</button><button id="theme" class="themeToggle" role="switch" aria-checked="true">Dark mode <span id="themeState" aria-hidden="true">On</span></button></div></div>
       <section id="dashboard" class="panel sectionAnchor">
         <div class="dashboardGrid">
           <div class="dashboardMain">
-            <div class="dashboardFormHead"><div><h2 id="formTitle"></h2><div id="formRole" class="muted"></div></div><button id="currentFormInfo" class="infoBtn" aria-label="Current form information" title="Current form information">ⓘ</button></div>
+            <div class="dashboardFormHead"><div><h2 id="formTitle"></h2><div id="formRole" class="muted"></div></div><button id="currentFormInfo" class="infoBtn" aria-label="Current form details" title="Current form details">ⓘ</button></div>
             <div id="formData"></div>
             <div id="defense" class="defenses"></div>
             <div class="dashboardHealth">
               <div class="healthLine"><div><span id="hp" class="big"></span> / <span id="maximumHP" data-character-limit="maximumHitPoints"></span> HP</div><div class="bars"><div class="bar"><i id="hpbar"></i></div></div></div>
               <div class="healthLine tempLine"><div>Temp HP <b id="temp"></b></div><div class="bars"><div class="bar temp"><i id="tempbar"></i></div></div></div>
-              <div class="row wrap healthControls"><label class="hpAmount">HP amount<input id="amount" type="number" min="0" value="1"></label><button id="damage">Damage</button><button id="heal">Heal</button><button id="addTemp" title="Keep the higher temporary HP total; temporary HP does not stack">Gain Temp</button><details class="tempCorrection"><summary>Adjust temp HP</summary><div class="row wrap"><button id="setTemp" title="Correction control: replace the current temporary HP total">Set Temp</button><button id="clearTemp">Clear Temp</button></div></details></div>
+              <div class="row wrap healthControls"><label class="hpAmount">HP amount<input id="amount" type="number" min="0" value="1"></label><button id="damage" class="hpDamage">Damage</button><button id="heal" class="hpHeal">Heal</button><button id="addTemp" title="Keep the higher temporary HP total; temporary HP does not stack">Gain temp HP</button><details class="tempCorrection"><summary>Correct temp HP</summary><div class="row wrap"><button id="setTemp" title="Correction control: replace the current temporary HP total">Set Temp</button><button id="clearTemp">Clear Temp</button></div></details></div>
               <div id="death" class="hidden" style="margin-top: 8px"><b class="danger">Death Saves</b><div id="deathPips"></div></div>
             </div>
           </div>
@@ -44,7 +44,13 @@
       </section>
       <div class="combatLayout">
         <section id="action-economy" class="panel sectionAnchor">
-          <div class="top"><h2>Turn actions</h2><small id="actionRestriction" class="conditionHint"></small></div>
+          <div class="combatTabs" role="tablist" aria-label="Combat view">
+            <button type="button" id="actionsTab" role="tab" aria-controls="actionsPane" aria-selected="true"><span class="swordsIcon" aria-hidden="true">&#x2694;&#xFE0E;</span> Actions</button>
+            <button type="button" id="skillsTab" role="tab" aria-controls="skillsPane" aria-selected="false" tabindex="-1">Skills</button>
+          </div>
+          <div id="actionsPane" role="tabpanel" aria-labelledby="actionsTab">
+            <button type="button" id="openSpellManagerCast" class="generalCast" data-open-cast="all" aria-haspopup="dialog">Cast a spell</button>
+            <small id="actionRestriction" class="conditionHint"></small>
           <div class="g3">
             <div class="actionColumn">
               <b>Action</b>
@@ -59,63 +65,179 @@
               <div id="reaction"></div>
             </div>
           </div>
+          </div>
+          <div id="skillsPane" class="skillPanel" role="tabpanel" aria-labelledby="skillsTab" hidden>
+            <div class="row wrap skillFilters">
+              <label class="skillSearchField"><span class="searchIcon" aria-hidden="true"></span><span class="srOnly">Search skills</span><input id="skillSearch" type="search" placeholder="Search skills" autocomplete="off"></label>
+              <select id="skillSort" aria-label="Sort skills"><option value="name">A–Z</option><option value="ability">By ability</option></select>
+            </div>
+            <div id="skillList"></div>
+          </div>
         </section>
         <section id="resources" class="panel sectionAnchor">
           <h2>Resources</h2>
           <div class="g3">
             <div><div id="wildResource"></div><div id="resurgence"></div></div>
-            <div><b>Spell Slots</b><div id="slots"></div></div>
-            <div><div id="breathResource"></div><div class="counter"><span>Draconic Flight</span><div id="flightStates" class="segmented"></div></div></div>
+            <div><h3 class="resourceHeading">Spell slots</h3><div id="slots"></div></div>
+            <div><div id="breathResource"></div><div class="counter flightRow"><span>Draconic Flight</span><div id="flightStates" class="segmented"></div></div></div>
           </div>
-          <div class="restRow"><div class="row"><button id="shortRest">Short Rest</button><button id="longRest">Long Rest</button></div></div>
+          <div class="restRow">
+            <button type="button" id="shortRest" aria-haspopup="dialog">Short rest</button>
+            <button type="button" id="longRest" aria-haspopup="dialog">Long rest</button>
+          </div>
         </section>
       </div>
       <section id="info" class="panel sectionAnchor">
-        <details><summary>Manage character</summary><div class="managerMenu" role="tablist" aria-label="Character manager"><button id="spellTab" data-manager="spells" role="tab" aria-controls="spellManager" aria-selected="false">Spell Library</button><button id="formTab" data-manager="forms" role="tab" aria-controls="formManager" aria-selected="false">Bestiary</button><button id="inventoryTab" data-manager="inventory" role="tab" aria-controls="inventoryManager" aria-selected="false">Inventory</button><button id="featTab" data-manager="feats" role="tab" aria-controls="featManager" aria-selected="false">Feats</button></div><div id="spellManager" class="managerPane hidden" role="tabpanel" aria-labelledby="spellTab"><div class="managerGroup">
-              <h3>Cantrips <span id="cantripCount"></span>/<span data-character-limit="maximumSelectedCantrips"></span> · Prepared <span id="prepCount"></span>/<span data-character-limit="maximumPreparedSpells"></span></h3>
-              <input id="spellSearch" placeholder="Search spells" aria-label="Search spells">
-              <details class="filterOptions"><summary>Filters</summary><div class="filters"><select id="spellLevel" aria-label="All levels"><option value="">All levels</option><option value="0">Cantrip</option><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option></select><select id="spellSchool" aria-label="All schools"><option value="">All schools</option></select><select id="spellSort" aria-label="Sort results"><option value="level-name">Level, then name</option><option value="name">Name</option><option value="school-name">School, then name</option><option value="prepared-first">Prepared first</option></select></div></details>
-              <div id="spellLibrary" class="library"></div>
-            </div></div><div id="formManager" class="managerPane hidden" role="tabpanel" aria-labelledby="formTab"><div class="managerGroup">
+        <details><summary>Manage character</summary>
+          <div class="managerMenu" role="tablist" aria-label="Character manager">
+            <button id="spellTab" data-manager="spells" role="tab" aria-controls="spellManager" aria-selected="false">Spells</button>
+            <button id="formTab" data-manager="forms" role="tab" aria-controls="formManager" aria-selected="false">Wild Shape</button>
+            <button id="inventoryTab" data-manager="inventory" role="tab" aria-controls="inventoryManager" aria-selected="false">Inventory</button>
+            <button id="featTab" data-manager="feats" role="tab" aria-controls="featManager" aria-selected="false">Feats</button>
+          </div>
+          <div id="spellManager" class="managerPane hidden" role="tabpanel" aria-labelledby="spellTab">
+            <div class="row wrap">
+              <button type="button" data-browse-selection="spell" aria-haspopup="dialog">Spell library</button>
+              <button type="button" data-edit-selection="spell" aria-controls="spellSelections" aria-pressed="false">Edit</button>
+              <button type="button" data-browse-selection="cantrip" aria-haspopup="dialog" hidden>Add cantrip</button>
+            </div>
+            <div id="spellSelections"></div>
+          </div>
+          <div id="formManager" class="managerPane hidden" role="tabpanel" aria-labelledby="formTab">
+            <div class="top wrap">
               <h3>Known forms <span id="knownCount"></span>/<span data-character-limit="maximumKnownForms"></span></h3>
-              <input id="formSearch" placeholder="Search forms" aria-label="Search forms">
-              <details class="filterOptions"><summary>Filters</summary><div class="filters"><select id="formCR" aria-label="All CRs"><option value="">All CRs</option></select><select id="formEdition" aria-label="Filter forms by ruleset"><option value="">All rulesets</option></select><select id="formRoleFilter" aria-label="All roles"><option value="">All roles</option><option>combat</option><option>control</option><option>damage</option><option>scout</option><option>stealth</option><option>transport</option><option>swim</option><option>climb</option></select><select id="formSort" aria-label="Sort results"><option value="name">Name</option><option value="cr-asc">CR low to high</option><option value="cr-desc">CR high to low</option><option value="role-name">Role, then name</option><option value="known-first">Known first</option><option value="speed-desc">Fastest first</option></select></div></details>
-              <label class="spellField" id="swapFormField">Replace known form <select id="swapForm"><option value="">Choose a form</option></select></label>
-              <div id="formLibrary" class="library"></div>
-            </div></div>
+              <div class="row wrap">
+                <button type="button" data-browse-selection="form" aria-haspopup="dialog">Bestiary</button>
+                <button type="button" data-edit-selection="form" aria-controls="formSelections" aria-pressed="false">Edit</button>
+              </div>
+            </div>
+            <div id="formSelections" class="library selectionList"></div>
+          </div>
             <div id="inventoryManager" class="managerPane hidden" role="tabpanel" aria-labelledby="inventoryTab">
               <div class="managerGroup">
-                <div class="top"><h3>Carried items</h3><button type="button" id="openItemCatalog" aria-haspopup="dialog">Add to inventory</button></div>
+                <div class="managerTools"><button type="button" id="openItemCatalog" aria-haspopup="dialog">Add item</button></div>
                 <div id="carriedItemList" class="library"></div>
               </div>
             </div>
             <div id="featManager" class="managerPane hidden" role="tabpanel" aria-labelledby="featTab">
               <div class="managerGroup">
-                <div class="top"><h3>Known feats</h3><button type="button" id="openFeatCatalog" aria-haspopup="dialog">Add a feat</button></div>
+                <div class="managerTools"><button type="button" id="openFeatCatalog" aria-haspopup="dialog">Add feat</button></div>
                 <div id="ownedFeatList" class="library"></div>
               </div>
             </div>
         </details>
       </section>
-      <dialog id="featCatalog" aria-labelledby="featCatalogTitle">
-        <header class="top">
-          <h2 id="featCatalogTitle">Add a feat</h2>
+      <dialog id="restDialog" class="sheetDialog" aria-labelledby="restTitle">
+        <header class="top dialogHeader">
+          <h2 id="restTitle" tabindex="-1"></h2>
+        </header>
+        <div class="dialogBody restBody">
+          <ul id="restSummary" class="restSummary" aria-label="Recovery preview"></ul>
+          <p id="restNoRecovery" class="muted" hidden>Resources are already at full and no effects will change.</p>
+          <section id="shortRestHealing" aria-labelledby="hitDiceTitle" hidden>
+            <div class="top wrap">
+              <h3 id="hitDiceTitle">Hit Dice</h3>
+              <span id="restDiceRemaining" class="muted"></span>
+            </div>
+            <p id="restHealingPreview" role="status"></p>
+            <div class="row wrap" id="hitDiceControls">
+              <button type="button" id="rollHitDie"></button>
+              <div class="row wrap">
+                <label for="physicalHitDie">Physical roll</label>
+                <select id="physicalHitDie"><option value="">—</option></select>
+                <button type="button" id="spendHitDie" disabled>Use roll</button>
+              </div>
+            </div>
+            <ol id="restHitDieRolls" class="restRolls" hidden></ol>
+            <button type="button" id="removeRestHitDie" hidden>Remove last die</button>
+          </section>
+          <section id="longRestChoices" aria-labelledby="restChoicesTitle" hidden>
+            <h3 id="restChoicesTitle">Optional changes</h3>
+            <div class="restChoice">
+              <button type="button" id="restPrepareSpells" aria-haspopup="dialog">Adjust prepared spells</button>
+              <ul id="restSpellPreview" class="restSummary" hidden></ul>
+            </div>
+            <div class="restChoice">
+              <div class="row wrap">
+                <button type="button" id="restReplaceForm" aria-haspopup="dialog">Replace one known form</button>
+                <button type="button" id="removeRestFormSwap" hidden>Remove swap</button>
+              </div>
+              <p id="restFormPreview" class="muted" hidden></p>
+            </div>
+          </section>
+        </div>
+        <footer class="row wrap dialogFooter restFooter">
+          <button type="button" id="cancelRest">Cancel</button>
+          <button type="button" id="takeRest" class="restPrimary"></button>
+        </footer>
+      </dialog>
+      <dialog id="selectionCatalog" class="sheetDialog" aria-labelledby="selectionCatalogTitle">
+        <header class="top dialogHeader">
+          <h2 id="selectionCatalogTitle"></h2>
+          <button type="button" id="closeSelectionCatalog">Done</button>
+        </header>
+        <div id="selectionResults" class="dialogBody">
+          <p id="selectionContext" class="muted"></p>
+          <div class="catalogFilters filters">
+            <input type="search" id="selectionSearch" aria-label="Search catalog" autocomplete="off">
+            <div id="spellFilters" class="row wrap">
+              <select id="spellLevel" aria-label="Spell level"><option value="">All levels</option><option value="0">Cantrips</option></select>
+              <select id="spellSchool" aria-label="Spell school"><option value="">All schools</option></select>
+              <select id="spellProperty" aria-label="Spell properties"><option value="">All spells</option><option value="ritual">Rituals</option><option value="concentration">Concentration</option></select>
+              <select id="spellSort" aria-label="Sort spells"><option value="level-name">Level, then name</option><option value="name">Name A–Z</option><option value="school">School, then name</option></select>
+            </div>
+            <div id="formFilters" class="row wrap" hidden>
+              <select id="formEdition" aria-label="Form ruleset"><option value="">All rulesets</option></select>
+              <select id="formCR" aria-label="Challenge rating"><option value="">All CRs</option></select>
+              <select id="formMovement" aria-label="Movement type"><option value="">All movement</option></select>
+              <select id="formRoleFilter" aria-label="Form role"><option value="">All roles</option></select>
+              <select id="formSort" aria-label="Sort forms"><option value="name">Name A–Z</option><option value="cr-desc">Highest CR</option><option value="cr-asc">Lowest CR</option><option value="speed">Fastest first</option></select>
+            </div>
+          </div>
+          <div id="selectionList" class="library selectionList"></div>
+        </div>
+        <footer class="dialogFooter catalogFooter">
+          <div class="row wrap">
+            <p id="selectionPageStatus" class="muted" role="status"></p>
+            <nav id="selectionPages" class="row" aria-label="Catalog pages" hidden>
+              <button type="button" id="previousSelectionPage">Previous</button>
+              <button type="button" id="nextSelectionPage">Next</button>
+            </nav>
+          </div>
+          <div id="selectionPending" hidden>
+            <p id="selectionPendingText"></p>
+            <label id="selectionOutgoingField">Replace <select id="selectionOutgoing"></select></label>
+            <div class="row wrap">
+              <button type="button" id="confirmSelection"></button>
+              <button type="button" id="cancelSelection">Cancel</button>
+            </div>
+          </div>
+          <p id="selectionFeedback" class="muted" role="status" hidden></p>
+          <div id="selectionSaveControls" class="row wrap" hidden>
+            <button type="button" id="savePreparedSelection" disabled>Keep spell changes</button>
+            <button type="button" id="undoSelection" hidden>Undo</button>
+          </div>
+        </footer>
+      </dialog>
+      <dialog id="featCatalog" class="sheetDialog" aria-labelledby="featCatalogTitle">
+        <header class="top dialogHeader">
+          <h2 id="featCatalogTitle">Add feat</h2>
           <button type="button" id="closeFeatCatalog" autofocus>Done</button>
         </header>
-        <div class="filters catalogFilters">
-          <input type="search" id="featSearch" placeholder="Search feats" aria-label="Search feats" autocomplete="off">
-          <select id="featCategory" aria-label="Feat category"><option value="">All categories</option></select>
-          <label>Sort by <select id="featSort">
-            <option value="name">Name A–Z</option>
-            <option value="name-desc">Name Z–A</option>
-            <option value="category">Category, then name</option>
-            <option value="level">Required level</option>
-          </select></label>
-        </div>
-        <div id="featCatalogResults">
+        <div id="featCatalogResults" class="dialogBody">
+          <div class="filters catalogFilters">
+            <input type="search" id="featSearch" placeholder="Search feats" aria-label="Search feats" autocomplete="off">
+            <select id="featCategory" aria-label="Feat category"><option value="">All categories</option></select>
+            <select id="featSort" aria-label="Sort feats">
+              <option value="name">Name A–Z</option>
+              <option value="name-desc">Name Z–A</option>
+              <option value="category">Category, then name</option>
+              <option value="level">Required level</option>
+            </select>
+          </div>
           <div id="featCatalogList" class="library"></div>
         </div>
-        <footer class="catalogFooter">
+        <footer class="dialogFooter catalogFooter">
           <div class="row wrap">
             <p id="featPageStatus" class="muted" role="status"></p>
             <nav id="featPages" class="row" aria-label="Feat catalog pages" hidden>
@@ -129,31 +251,31 @@
           </div>
         </footer>
       </dialog>
-      <dialog id="itemCatalog" aria-labelledby="itemCatalogTitle">
-        <header class="top">
-          <h2 id="itemCatalogTitle">Add to inventory</h2>
+      <dialog id="itemCatalog" class="sheetDialog" aria-labelledby="itemCatalogTitle">
+        <header class="top dialogHeader">
+          <h2 id="itemCatalogTitle">Add item</h2>
           <button type="button" id="closeItemCatalog" autofocus>Done</button>
         </header>
-        <div class="filters catalogFilters">
-          <input type="search" id="itemSearch" placeholder="Search items" aria-label="Search items" autocomplete="off">
-          <select id="itemCategory" aria-label="Item category"><option value="">All categories</option></select>
-          <select id="itemRarity" aria-label="Item rarity"><option value="">All rarities</option><option value="unlisted">Rarity unlisted</option></select>
-          <label>Sort by <select id="itemSort">
-            <option value="name">Name A–Z</option>
-            <option value="name-desc">Name Z–A</option>
-            <option value="category">Category</option>
-            <option value="rarity-desc">Rarity (highest first)</option>
-            <option value="rarity-asc">Rarity (lowest first)</option>
-            <option value="price-asc">Price (lowest first)</option>
-            <option value="price-desc">Price (highest first)</option>
-            <option value="weight">Weight (lightest first)</option>
-            <option value="owned">Owned first</option>
-          </select></label>
-        </div>
-        <div id="itemCatalogResults">
+        <div id="itemCatalogResults" class="dialogBody">
+          <div class="filters catalogFilters">
+            <input type="search" id="itemSearch" placeholder="Search items" aria-label="Search items" autocomplete="off">
+            <select id="itemCategory" aria-label="Item category"><option value="">All categories</option></select>
+            <select id="itemRarity" aria-label="Item rarity"><option value="">All rarities</option><option value="unlisted">Rarity unlisted</option></select>
+            <select id="itemSort" aria-label="Sort items">
+              <option value="name">Name A–Z</option>
+              <option value="name-desc">Name Z–A</option>
+              <option value="category">Category</option>
+              <option value="rarity-desc">Rarity (highest first)</option>
+              <option value="rarity-asc">Rarity (lowest first)</option>
+              <option value="price-asc">Price (lowest first)</option>
+              <option value="price-desc">Price (highest first)</option>
+              <option value="weight">Weight (lightest first)</option>
+              <option value="owned">Owned first</option>
+            </select>
+          </div>
           <div id="itemCatalogList" class="library"></div>
         </div>
-        <footer class="catalogFooter">
+        <footer class="dialogFooter catalogFooter">
           <div class="row wrap">
             <p id="itemPageStatus" class="muted" role="status"></p>
             <nav id="itemPages" class="row" aria-label="Item catalog pages" hidden>
@@ -167,25 +289,35 @@
           </div>
         </footer>
       </dialog>
-      <dialog id="infoModal" role="dialog" aria-modal="true" aria-labelledby="infoTitle" aria-describedby="infoBody">
-        <div class="top"><h2 id="infoTitle"></h2><button id="closeInfo" autofocus>Close</button></div>
-        <div id="infoBody" class="modalBody"></div>
+      <dialog id="castDialog" class="sheetDialog" aria-labelledby="castTitle">
+        <header class="castHeader dialogHeader">
+          <button type="button" id="castBack" class="dialogClose" aria-label="Back">←</button>
+          <h2 id="castTitle" tabindex="-1">Cast a spell</h2>
+          <button type="button" id="castClose" class="dialogClose" aria-label="Close">×</button>
+        </header>
+        <div id="castBody" class="dialogBody"></div>
       </dialog>
-      <dialog id="conditionEditor" aria-labelledby="pickerTitle">
+      <dialog id="infoModal" class="sheetDialog" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+        <header class="top dialogHeader"><h2 id="infoTitle"></h2><button type="button" id="closeInfo" class="dialogClose" aria-label="Close details" autofocus>×</button></header>
+        <div id="infoBody" class="dialogBody modalBody"></div>
+      </dialog>
+      <dialog id="conditionEditor" class="sheetDialog" aria-labelledby="pickerTitle">
         <form id="conditionForm">
-          <header class="top">
+          <header class="top dialogHeader">
             <h2 id="pickerTitle">Add effect</h2>
-            <button type="button" id="closeEffects">Close</button>
+            <button type="button" id="closeEffects" class="dialogClose" aria-label="Close">×</button>
           </header>
-          <label>Find an effect<input id="effectSearch" type="search" placeholder="Search all effects" autocomplete="off"></label>
-          <label>Browse category<select id="effectGroup"></select></label>
-          <div id="conditionChoices"></div>
-          <p id="conditionPreview" aria-live="polite"></p>
-          <label id="customNameField" hidden="">Effect name<input id="customName" maxlength="120"></label>
-          <label id="exhaustionField" hidden="">Level<select id="exhaustionLevel"></select></label>
-          <label id="effectParameterField" hidden=""><span id="effectParameterLabel"></span><select id="effectParameter"></select></label>
-          <label>Note (optional)<input id="conditionNote" placeholder="Vine · escape DC 15"></label>
-          <footer>
+          <div class="dialogBody effectFields">
+            <label>Find an effect<input id="effectSearch" type="search" placeholder="Search all effects" autocomplete="off"></label>
+            <label>Browse category<select id="effectGroup"></select></label>
+            <div id="conditionChoices"></div>
+            <p id="conditionPreview" aria-live="polite"></p>
+            <label id="customNameField" hidden="">Effect name<input id="customName" maxlength="120"></label>
+            <label id="exhaustionField" hidden="">Level<select id="exhaustionLevel"></select></label>
+            <label id="effectParameterField" hidden=""><span id="effectParameterLabel"></span><select id="effectParameter"></select></label>
+            <label>Note (optional)<input id="conditionNote" placeholder="Vine · escape DC 15"></label>
+          </div>
+          <footer class="dialogFooter">
             <button id="applyCondition" disabled="">Apply effect</button>
           </footer>
         </form>
@@ -197,7 +329,10 @@
       </aside>
     </main>
     <p hidden="" role="alert" id="loadError"></p>
-    <div popover="" id="rollExplanation" class="rollExplanation" role="dialog" aria-label="Modifier sources"></div>
+    <div popover="" id="rollExplanation" class="rollExplanation" role="dialog" tabindex="-1" aria-labelledby="popoverTitle" aria-describedby="popoverBody">
+      <h3 id="popoverTitle"></h3>
+      <p id="popoverBody"></p>
+    </div>
     <script src="application/load-errors.js"></script>
     <script src="application/document.js"></script>
     <script src="characters/kincaid.js"></script>
@@ -213,6 +348,7 @@
     <script src="catalogs/spells/phb-2024-owned-spells.js"></script>
     <script src="characters/kincaid-spell-configuration.js"></script>
     <script src="application/join-spells.js"></script>
+    <script src="catalogs/spells/magic-initiate-srd.js"></script>
     <script src="application/spell-catalog.js"></script>
     <script src="catalogs/status-effects/assets.js"></script>
     <script src="catalogs/status-effects/rules.js"></script>
@@ -220,6 +356,8 @@
     <script src="catalogs/effects.js"></script>
     <script src="application/effect-definitions.js"></script>
     <script src="characters/self-effect-reminders.js"></script>
+    <script src="application/consumables.js"></script>
+    <script src="application/feat-choices.js"></script>
     <script src="application/state.js"></script>
     <script src="application/wild-shape.js"></script>
     <script src="application/persistence.js"></script>
@@ -227,12 +365,15 @@
     <script src="application/spellcasting.js"></script>
     <script src="application/combat-controls.js"></script>
     <script src="application/information-dialog.js"></script>
+    <script src="application/cast-chooser.js"></script>
+    <script src="application/skills.js"></script>
     <script src="application/dashboard.js"></script>
     <script src="application/active-effects.js"></script>
     <script src="application/resources.js"></script>
     <script src="application/catalog-lists.js"></script>
     <script src="application/inventory.js"></script>
     <script src="application/feats.js"></script>
+    <script src="application/rests.js"></script>
     <script src="application/interactions.js"></script>
     <script src="pwa.js"></script>
   </body></html>

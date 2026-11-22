@@ -1,5 +1,5 @@
 // Use a fresh release ID whenever any runtime file changes.
-const RELEASE = "11";
+const RELEASE = "27";
 const prefix = "kincaid-sheet:" + self.registration.scope + ":";
 const cacheName = prefix + RELEASE;
 const entry = new URL("index.html", self.registration.scope).href;
@@ -25,6 +25,7 @@ const files = [
   "catalogs/spells/phb-2024-owned-spells.js",
   "characters/kincaid-spell-configuration.js",
   "application/join-spells.js",
+  "catalogs/spells/magic-initiate-srd.js",
   "application/spell-catalog.js",
   "catalogs/status-effects/assets.js",
   "catalogs/status-effects/rules.js",
@@ -32,19 +33,24 @@ const files = [
   "catalogs/effects.js",
   "application/effect-definitions.js",
   "characters/self-effect-reminders.js",
+  "application/consumables.js",
+  "application/feat-choices.js",
   "application/state.js",
   "application/wild-shape.js",
   "application/persistence.js",
   "application/elements.js",
   "application/spellcasting.js",
+  "application/cast-chooser.js",
   "application/combat-controls.js",
   "application/information-dialog.js",
+  "application/skills.js",
   "application/dashboard.js",
   "application/active-effects.js",
   "application/resources.js",
   "application/catalog-lists.js",
   "application/inventory.js",
   "application/feats.js",
+  "application/rests.js",
   "application/interactions.js",
   "pwa.js",
   "icons/kincaid-d20-512.png"

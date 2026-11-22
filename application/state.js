@@ -4,6 +4,7 @@ const hasFeat = id => Boolean(applicationState.feats[id]);
 const createFreshState = () => ({
   v: 71,
   currentHitPoints: MAX,
+  hitDiceRemaining: kincaid.druidLevel,
   temporaryHitPoints: 0,
   activeFormId: null,
   wildShapeUses: kincaid.maximumWildShapeUses,
@@ -20,6 +21,14 @@ const createFreshState = () => ({
   activeEffects: [],
   conditions: [],
   concentrationEffect: null,
+  pendingCast: null,
+  goodberryBatches: [],
+  attunedItemIds: [],
+  venomDagger: "ready",
+  consumableEffects: [],
+  oiledWeaponId: null,
+  otherConsumableUses: [],
+  featChoices: {},
   size: null,
   long: false,
   radiantStrikeActive: false,
@@ -126,6 +135,27 @@ function normalizeEquippedItems(ids, inventory) {
   }
   return [...equipped];
 }
+function normalizeGoodberryBatches(value) {
+  if (!Array.isArray(value)) return [];
+  const batches = new Map();
+  for (const batch of value) {
+    if (!batch || !Number.isSafeInteger(batch.id) || batch.id < 1 ||
+        !Number.isInteger(batch.remaining) || batch.remaining < 1 || batch.remaining > 10) continue;
+    batches.set(batch.id, {id: batch.id, remaining: batch.remaining});
+  }
+  return [...batches.values()];
+}
+
+function normalizePendingCast(value) {
+  if (!value || typeof value !== "object") return null;
+  const {spell, kind, slot, methodId, choice, self, healing} = value;
+  if (!getSpellRecord(spell) || !["all", "turn", "bonus", "reaction", "companion"].includes(kind) ||
+      !Number.isInteger(slot) || (slot !== 0 && !spellSlotLevels.includes(slot)) ||
+      typeof methodId !== "string") return null;
+  return {spell, kind, slot, methodId, ...(magicLists.includes(value.abilitySource) ? {abilitySource: value.abilitySource} : {}), choice: typeof choice === "string" ? choice : null,
+    self: self === true, healing: intIn(healing, 0, Number.MAX_SAFE_INTEGER, 0)};
+}
+
 function normalizeState(raw) {
   let base = createFreshState(),
     repaired = false;
@@ -176,7 +206,9 @@ function normalizeState(raw) {
     repaired = true;
   }
   const conditions = normalizeConditions(raw.conditions);
-  const maximum = MAX + aidBonus({conditions, activeEffects: effects});
+  const feats = normalizeFeats(raw.feats, base.feats);
+  const featChoices = normalizeFeatChoices(raw.featChoices, feats);
+  const maximum = maximumBaseHP(featChoices) + aidBonus({conditions, activeEffects: effects});
   const legacyAid = effects.find(effect => effect.n === "Aid" && effect.self && effect.order === undefined);
   let hp = intIn(raw.currentHitPoints, 0, maximum, base.currentHitPoints);
   if (legacyAid) {
@@ -207,6 +239,7 @@ function normalizeState(raw) {
     ...base,
     v: 71,
     currentHitPoints: hp,
+    hitDiceRemaining: intIn(raw.hitDiceRemaining ?? base.hitDiceRemaining, 0, kincaid.druidLevel, base.hitDiceRemaining),
     temporaryHitPoints: intIn(
       raw.temporaryHitPoints,
       0,
@@ -226,10 +259,18 @@ function normalizeState(raw) {
     preparedSpellNames: prep,
     inventory,
     equippedItemIds,
-    feats: normalizeFeats(raw.feats, base.feats),
+    venomDagger: venomDaggerStates.includes(raw.venomDagger) ? raw.venomDagger : "ready",
+    attunedItemIds: normalizeAttunedItems(raw.attunedItemIds, inventory),
+    feats,
     conditions,
     activeEffects: effects,
     concentrationEffect: conc,
+    pendingCast: hp && !conc ? normalizePendingCast(raw.pendingCast) : null,
+    consumableEffects: normalizeConsumableEffects(raw.consumableEffects).filter(id => hp || id !== gaseousPotion),
+    oiledWeaponId: inventory[raw.oiledWeaponId] && canOilWeapon(itemById.get(raw.oiledWeaponId)) ? raw.oiledWeaponId : null,
+    otherConsumableUses: normalizeOtherConsumableUses(raw.otherConsumableUses),
+    featChoices,
+    goodberryBatches: normalizeGoodberryBatches(raw.goodberryBatches),
     size: null,
     long: false,
     radiantStrikeActive: radiant,
@@ -250,6 +291,7 @@ function normalizeState(raw) {
       ...raw,
       conditions: state.conditions,
       ...(legacyAid ? {currentHitPoints: hp} : {}),
+      hitDiceRemaining: raw.hitDiceRemaining ?? base.hitDiceRemaining,
       v: 71,
       knownFormIds: known,
       knownCantripNames: cantrips,
@@ -259,6 +301,14 @@ function normalizeState(raw) {
       equippedItemIds: raw.equippedItemIds === undefined ? equippedItemIds : raw.equippedItemIds,
       activeEffects: effects,
       concentrationEffect: conc,
+      pendingCast: raw.pendingCast ?? null,
+      venomDagger: raw.venomDagger ?? "ready",
+      attunedItemIds: raw.attunedItemIds ?? [],
+      consumableEffects: raw.consumableEffects ?? [],
+      oiledWeaponId: raw.oiledWeaponId ?? null,
+      otherConsumableUses: raw.otherConsumableUses ?? [],
+      featChoices: raw.featChoices ?? {},
+      goodberryBatches: raw.goodberryBatches ?? [],
       size: null,
       long: false,
       undoHistory: []
@@ -267,5 +317,8 @@ function normalizeState(raw) {
   } catch (_) {
     repaired = true;
   }
+  if (Array.isArray(raw.undoHistory)) state.undoHistory = raw.undoHistory.slice(-10)
+    .filter(snapshot => snapshot && typeof snapshot === "object" && snapshot.v === 71)
+    .map(snapshot => normalizeState({...snapshot, undoHistory: []}).state);
   return { state, repaired, migratedAid: Boolean(legacyAid) };
 }

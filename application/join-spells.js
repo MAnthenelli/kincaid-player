@@ -1,7 +1,7 @@
 function joinSpellCatalogs(sources, configuration) {
   const settingsByName = new Map();
   const ids = new Set();
-  const settingFields = new Set(["id", "name", "availability", "cantripSelectionOrder", "preparationOrder", "selfTargetMode", "availableInWildShapeAsReaction", "quickText", "canUpcast"]);
+  const settingFields = new Set(["id", "name", "availability", "cantripSelectionOrder", "preparationOrder", "selfTargetMode", "availableInWildShapeAsReaction", "quickText", "canUpcast", "roles"]);
   for (const settings of configuration) {
     if (settingsByName.has(settings.name) || ids.has(settings.id))
       throw new Error("Duplicate character spell: " + settings.name);
@@ -23,4 +23,9 @@ function joinSpellCatalogs(sources, configuration) {
   if (settingsByName.size) throw new Error("Missing spell sources: " + [...settingsByName.keys()].join(", "));
   return records;
 }
-const SPELL_RECORDS = joinSpellCatalogs([...SRD_SPELL_RECORDS, ...PHB_SPELL_RECORDS], KINCAID_SPELL_CONFIGURATION);
+const SPELL_RECORDS = joinSpellCatalogs([...SRD_SPELL_RECORDS, ...PHB_SPELL_RECORDS, {
+  name: "Find Familiar", level: 1, school: "Conjuration", actionType: "action",
+  range: "10 ft.", components: ["v", "s"], duration: "Instantaneous",
+  ritual: false, concentration: false,
+  description: "Wild Companion summons a Fey familiar without Material components. It disappears when you finish a Long Rest."
+}], KINCAID_SPELL_CONFIGURATION);

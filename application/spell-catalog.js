@@ -1,6 +1,11 @@
+const initiateSpellRecords = MAGIC_INITIATE_SRD.map(record => ({
+  ...record, id: "initiate-" + record.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+  availability: "featSpell", requiresConcentration: record.concentration,
+  rulesEdition: "2024", roles: [], selfTargetMode: "none"
+}));
 function getSpellRecord(nameOrId) {
   return (
-    SPELL_RECORDS.find(
+    [...SPELL_RECORDS, ...initiateSpellRecords].find(
       (record) => record.name === nameOrId || record.id === nameOrId
     ) || null
   );
@@ -16,7 +21,7 @@ function validateSpellCatalog() {
     "selectableCantrip",
     "grantedCantrip",
     "preparedSpell",
-    "circleSpell", "druidicSpell"
+    "circleSpell", "druidicSpell", "wildCompanion"
   ]);
   const selfTargetModes = new Set(["none", "only", "optional"]);
   const castingControls = new Set(["action", "bonus"]);
@@ -44,6 +49,10 @@ function validateSpellCatalog() {
       issues.push(`${path}.school must be a nonempty string.`);
     if (!availabilityValues.has(record.availability))
       issues.push(`${path}.availability is invalid.`);
+    if (!Array.isArray(record.roles) || !record.roles.length ||
+      new Set(record.roles).size !== record.roles.length ||
+      record.roles.some(role => !SPELL_ROLES.includes(role)))
+      issues.push(`${path}.roles must contain unique spell roles.`);
     if (typeof record.ritual !== "boolean")
       issues.push(`${path}.ritual must be boolean.`);
     if (typeof record.requiresConcentration !== "boolean")
@@ -89,10 +98,10 @@ const PREPARED_SPELL_OPTIONS = SPELL_RECORDS.filter((record) =>
   .sort((first, second) => first.preparationOrder - second.preparationOrder)
   .map((record) => record.name);
 const SPELL_QUICK_TEXT = Object.fromEntries(
-  SPELL_RECORDS.map((record) => [record.name, record.quickText.replaceAll("{spellSaveDC}", String(spellSaveDC)).replaceAll("{spellAttackBonus}", String(spellAttackBonus))])
+  SPELL_RECORDS.map((record) => [record.name, record.quickText])
 );
 const SPELL_METADATA = Object.fromEntries(
-  SPELL_RECORDS.map((record) => [
+  [...SPELL_RECORDS, ...initiateSpellRecords].map((record) => [
     record.name,
     [record.level, record.requiresConcentration, record.duration]
   ])
@@ -104,18 +113,4 @@ const SPELL_SELF_TARGET_MODES = Object.fromEntries(
   SPELL_RECORDS.filter((record) => record.selfTargetMode !== "none").map(
     (record) => [record.name, record.selfTargetMode]
   )
-);
-const SPELL_UPCAST_RULES = SPELL_RECORDS.filter(
-  (record) => record.canUpcast
-).map((record) => record.name);
-const SPELL_CASTING_RULES = Object.fromEntries(
-  SPELL_RECORDS.filter((record) => record.castingControl !== "action").map(
-    (record) => [record.name, record.castingControl]
-  )
-);
-const REACTION_SPELLS = SPELL_RECORDS.filter(
-  (record) => record.availableInWildShapeAsReaction
-).map((record) => record.name);
-const RITUAL_SPELL_NAMES = new Set(
-  SPELL_RECORDS.filter((record) => record.ritual).map((record) => record.name)
 );

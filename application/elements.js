@@ -32,24 +32,11 @@ const ids = [
   "flightStates",
   "resurgence",
   "saves",
-  "knownCount",
-  "formLibrary",
-  "prepCount",
-  "cantripCount",
-  "spellLibrary",
   "infoModal",
   "infoTitle",
   "infoBody",
   "closeInfo",
-  "stickyState",
-  "spellSearch",
-  "spellLevel",
-  "spellSchool",
-  "spellSort",
-  "formSearch",
-  "formCR",
-  "formRoleFilter", "formEdition", "swapForm", "swapFormField",
-  "formSort"
+  "stickyState"
 ];
 const elements = ids.reduce((o, id) => ((o[id] = getElementById(id)), o), {});
 

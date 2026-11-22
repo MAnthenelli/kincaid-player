@@ -1,6 +1,20 @@
+const SPELL_ROLES = ["Damage", "Control", "Utility", "Mobility", "Healing"];
 const KINCAID_SPELL_CONFIGURATION = [
   {
+    "id": "find-familiar",
+    "roles": ["Utility"],
+    "name": "Find Familiar",
+    "availability": "wildCompanion",
+    "cantripSelectionOrder": null,
+    "preparationOrder": null,
+    "selfTargetMode": "none",
+    "availableInWildShapeAsReaction": false,
+    "canUpcast": false,
+    "quickText": "Use a Magic action and spend a spell slot or one Wild Shape use. The familiar is Fey and disappears when you finish a Long Rest."
+  },
+  {
     "id": "aid",
+    "roles": ["Utility", "Healing"],
     "name": "Aid",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -12,6 +26,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "animal-friendship",
+    "roles": ["Control"],
     "name": "Animal Friendship",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -23,6 +38,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "animal-messenger",
+    "roles": ["Utility"],
     "name": "Animal Messenger",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -34,6 +50,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "augury",
+    "roles": ["Utility"],
     "name": "Augury",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -45,6 +62,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "aura-of-vitality",
+    "roles": ["Healing"],
     "name": "Aura of Vitality",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -56,6 +74,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "barkskin",
+    "roles": ["Utility"],
     "name": "Barkskin",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -67,6 +86,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "beast-sense",
+    "roles": ["Utility"],
     "name": "Beast Sense",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -78,6 +98,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "call-lightning",
+    "roles": ["Damage"],
     "name": "Call Lightning",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -89,6 +110,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "charm-person",
+    "roles": ["Control"],
     "name": "Charm Person",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -100,6 +122,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "conjure-animals",
+    "roles": ["Damage"],
     "name": "Conjure Animals",
     "availability": "circleSpell",
     "cantripSelectionOrder": null,
@@ -111,6 +134,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "continual-flame",
+    "roles": ["Utility"],
     "name": "Continual Flame",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -122,6 +146,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "create-or-destroy-water",
+    "roles": ["Utility"],
     "name": "Create or Destroy Water",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -133,6 +158,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "cure-wounds",
+    "roles": ["Healing"],
     "name": "Cure Wounds",
     "availability": "circleSpell",
     "cantripSelectionOrder": null,
@@ -144,6 +170,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "darkvision",
+    "roles": ["Utility"],
     "name": "Darkvision",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -155,6 +182,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "daylight",
+    "roles": ["Utility"],
     "name": "Daylight",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -166,6 +194,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "detect-magic",
+    "roles": ["Utility"],
     "name": "Detect Magic",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -177,6 +206,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "detect-poison-and-disease",
+    "roles": ["Utility"],
     "name": "Detect Poison and Disease",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -188,6 +218,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "dispel-magic",
+    "roles": ["Utility"],
     "name": "Dispel Magic",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -199,6 +230,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "druidcraft",
+    "roles": ["Utility"],
     "name": "Druidcraft",
     "availability": "selectableCantrip",
     "cantripSelectionOrder": 0,
@@ -210,6 +242,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "elemental-weapon",
+    "roles": ["Damage"],
     "name": "Elemental Weapon",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -221,6 +254,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "elementalism",
+    "roles": ["Utility"],
     "name": "Elementalism",
     "availability": "selectableCantrip",
     "cantripSelectionOrder": 1,
@@ -232,6 +266,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "enhance-ability",
+    "roles": ["Utility"],
     "name": "Enhance Ability",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -243,6 +278,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "enlarge-reduce",
+    "roles": ["Control", "Utility"],
     "name": "Enlarge/Reduce",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -254,6 +290,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "entangle",
+    "roles": ["Control"],
     "name": "Entangle",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -265,6 +302,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "faerie-fire",
+    "roles": ["Control", "Utility"],
     "name": "Faerie Fire",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -276,6 +314,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "feign-death",
+    "roles": ["Utility"],
     "name": "Feign Death",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -287,6 +326,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "find-traps",
+    "roles": ["Utility"],
     "name": "Find Traps",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -298,6 +338,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "flame-blade",
+    "roles": ["Damage"],
     "name": "Flame Blade",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -309,6 +350,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "flaming-sphere",
+    "roles": ["Damage", "Control"],
     "name": "Flaming Sphere",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -320,6 +362,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "fog-cloud",
+    "roles": ["Control"],
     "name": "Fog Cloud",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -331,6 +374,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "goodberry",
+    "roles": ["Healing"],
     "name": "Goodberry",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -342,6 +386,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "guidance",
+    "roles": ["Utility"],
     "name": "Guidance",
     "availability": "selectableCantrip",
     "cantripSelectionOrder": 2,
@@ -353,6 +398,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "gust-of-wind",
+    "roles": ["Control", "Utility"],
     "name": "Gust of Wind",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -364,6 +410,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "healing-word",
+    "roles": ["Healing"],
     "name": "Healing Word",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -375,6 +422,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "heat-metal",
+    "roles": ["Damage", "Control"],
     "name": "Heat Metal",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -386,6 +434,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "hold-person",
+    "roles": ["Control"],
     "name": "Hold Person",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -397,6 +446,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "ice-knife",
+    "roles": ["Damage"],
     "name": "Ice Knife",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -408,6 +458,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "jump",
+    "roles": ["Mobility"],
     "name": "Jump",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -419,6 +470,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "lesser-restoration",
+    "roles": ["Healing"],
     "name": "Lesser Restoration",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -430,6 +482,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "locate-animals-or-plants",
+    "roles": ["Utility"],
     "name": "Locate Animals or Plants",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -441,6 +494,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "locate-object",
+    "roles": ["Utility"],
     "name": "Locate Object",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -452,6 +506,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "longstrider",
+    "roles": ["Mobility"],
     "name": "Longstrider",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -463,6 +518,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "meld-into-stone",
+    "roles": ["Utility", "Mobility"],
     "name": "Meld into Stone",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -474,6 +530,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "mending",
+    "roles": ["Utility"],
     "name": "Mending",
     "availability": "selectableCantrip",
     "cantripSelectionOrder": 3,
@@ -485,6 +542,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "message",
+    "roles": ["Utility"],
     "name": "Message",
     "availability": "selectableCantrip",
     "cantripSelectionOrder": 4,
@@ -496,6 +554,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "moonbeam",
+    "roles": ["Damage", "Control"],
     "name": "Moonbeam",
     "availability": "circleSpell",
     "cantripSelectionOrder": null,
@@ -507,6 +566,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "pass-without-trace",
+    "roles": ["Utility"],
     "name": "Pass without Trace",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -518,6 +578,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "plant-growth",
+    "roles": ["Control", "Utility"],
     "name": "Plant Growth",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -529,6 +590,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "poison-spray",
+    "roles": ["Damage"],
     "name": "Poison Spray",
     "availability": "selectableCantrip",
     "cantripSelectionOrder": 5,
@@ -540,6 +602,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "produce-flame",
+    "roles": ["Damage", "Utility"],
     "name": "Produce Flame",
     "availability": "selectableCantrip",
     "cantripSelectionOrder": 6,
@@ -551,6 +614,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "protection-from-energy",
+    "roles": ["Utility"],
     "name": "Protection from Energy",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -562,6 +626,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "protection-from-evil-and-good",
+    "roles": ["Utility"],
     "name": "Protection from Evil and Good",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -573,6 +638,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "protection-from-poison",
+    "roles": ["Utility", "Healing"],
     "name": "Protection from Poison",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -584,6 +650,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "purify-food-and-drink",
+    "roles": ["Utility"],
     "name": "Purify Food and Drink",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -595,6 +662,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "resistance",
+    "roles": ["Utility"],
     "name": "Resistance",
     "availability": "selectableCantrip",
     "cantripSelectionOrder": 7,
@@ -606,6 +674,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "revivify",
+    "roles": ["Healing"],
     "name": "Revivify",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -617,6 +686,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "shillelagh",
+    "roles": ["Damage"],
     "name": "Shillelagh",
     "availability": "selectableCantrip",
     "cantripSelectionOrder": 8,
@@ -628,6 +698,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "sleet-storm",
+    "roles": ["Control"],
     "name": "Sleet Storm",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -639,6 +710,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "spare-the-dying",
+    "roles": ["Healing"],
     "name": "Spare the Dying",
     "availability": "selectableCantrip",
     "cantripSelectionOrder": 9,
@@ -650,6 +722,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "speak-with-animals",
+    "roles": ["Utility"],
     "name": "Speak with Animals",
     "availability": "druidicSpell",
     "cantripSelectionOrder": null,
@@ -661,6 +734,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "speak-with-plants",
+    "roles": ["Control", "Utility", "Mobility"],
     "name": "Speak with Plants",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -672,6 +746,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "spike-growth",
+    "roles": ["Damage", "Control"],
     "name": "Spike Growth",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -683,6 +758,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "starry-wisp",
+    "roles": ["Damage", "Control"],
     "name": "Starry Wisp",
     "availability": "grantedCantrip",
     "cantripSelectionOrder": 10,
@@ -694,6 +770,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "summon-beast",
+    "roles": ["Damage", "Utility"],
     "name": "Summon Beast",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -705,6 +782,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "summon-fey",
+    "roles": ["Damage", "Control", "Utility"],
     "name": "Summon Fey",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -716,6 +794,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "thorn-whip",
+    "roles": ["Damage", "Control"],
     "name": "Thorn Whip",
     "availability": "selectableCantrip",
     "cantripSelectionOrder": 11,
@@ -727,6 +806,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "thunderclap",
+    "roles": ["Damage"],
     "name": "Thunderclap",
     "availability": "selectableCantrip",
     "cantripSelectionOrder": 12,
@@ -738,6 +818,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "thunderwave",
+    "roles": ["Damage", "Control"],
     "name": "Thunderwave",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -749,6 +830,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "water-breathing",
+    "roles": ["Utility", "Mobility"],
     "name": "Water Breathing",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -760,6 +842,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "water-walk",
+    "roles": ["Mobility"],
     "name": "Water Walk",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,
@@ -771,6 +854,7 @@ const KINCAID_SPELL_CONFIGURATION = [
   },
   {
     "id": "wind-wall",
+    "roles": ["Damage", "Control", "Utility"],
     "name": "Wind Wall",
     "availability": "preparedSpell",
     "cantripSelectionOrder": null,

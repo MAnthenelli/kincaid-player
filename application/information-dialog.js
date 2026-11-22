@@ -1,32 +1,57 @@
 wireDialogDismissal(elements.infoModal, elements.closeInfo);
 
+function appendInfoSource(body, provenance) {
+  const text = provenance.filter(Boolean).join(" · ");
+  if (!text) return;
+  const source = appendText(body, "details", "");
+  source.className = "infoSource";
+  appendText(source, "summary", "Source");
+  appendText(source, "p", text);
+}
+
+function appendInfoFact(facts, label, value) {
+  const fact = appendText(facts, "div", "");
+  appendText(fact, "dt", label);
+  appendText(fact, "dd", value);
+}
+
 function openSpellInfo(name) {
   const record = getSpellRecord(name);
   if (!record) return;
   elements.infoTitle.textContent = record.name;
   elements.infoBody.replaceChildren();
+  const body = elements.infoBody;
+  appendText(body, "p", [record.level ? "Level " + record.level : "Cantrip", record.school]
+    .filter(Boolean).join(" · ")).className = "muted";
+  const facts = appendText(body, "dl", "");
+  facts.className = "infoFacts";
   function field(label, value) {
-    if (!value) return;
-    const paragraph = document.createElement("p");
-    const heading = document.createElement("strong");
-    heading.textContent = label;
-    paragraph.append(heading, document.createElement("br"), value);
-    paragraph.style.whiteSpace = "pre-line";
-    elements.infoBody.append(paragraph);
+    if (value) appendInfoFact(facts, label, value);
   }
-  field(record.level ? "Level " + record.level : "Cantrip", record.school);
+  function section(label, value) {
+    if (!value) return;
+    if (label) appendText(body, "h3", label);
+    const rules = appendText(body, "p", "");
+    rules.className = "infoRules";
+    value.split(/\*\*([^*]+)\*\*/).forEach((part, index) => {
+      if (index % 2) appendText(rules, "strong", part);
+      else rules.append(part);
+    });
+  }
   field("Casting time", record.castingTime || {action:"Action", bonusAction:"Bonus Action", reaction:"Reaction"}[record.actionType]);
   field("Trigger", record.castingTrigger);
   field("Range", record.range);
   field("Components", record.components.join(", ").toUpperCase());
   field("Material", record.material);
-  field("Duration", (record.concentration ? "Concentration, " : "") + record.duration);
-  if (record.ritual) field("Ritual", "Yes");
-  field("Description", record.description);
-  field("Using a higher-level spell slot", record.higherLevelSlot);
-  field("Cantrip upgrade", record.cantripUpgrade);
+  field("Duration", (record.requiresConcentration ? "Concentration, " : "") + record.duration);
+  if (record.ritual) field("Ritual", "+10 minutes · No spell slot");
+  section("", record.description);
+  section("Higher-level slots", record.higherLevelSlot);
+  if (castDialog.open && record.level)
+    appendText(body, "small", "You can expend one spell slot to cast a spell per turn.");
+  section("Cantrip upgrade", record.cantripUpgrade);
   if (record.summonedCreature) {
-    field(record.summonedCreature.name, record.summonedCreature.text);
+    section(record.summonedCreature.name, record.summonedCreature.text);
     if (record.summonedCreature.abilities) {
       const table = document.createElement("table");
       table.createCaption().textContent = record.summonedCreature.name + " abilities";
@@ -48,6 +73,11 @@ function openSpellInfo(name) {
       elements.infoBody.append(table);
     }
   }
+  if (!castDialog.open && record.availability !== "wildCompanion" && spellKnown(record)) {
+    const cast = collectionButton(body, "Cast", "Cast " + record.name, "openCast", "all");
+    cast.dataset.castName = record.name;
+    cast.setAttribute("aria-haspopup", "dialog");
+  }
   showInfo();
 }
 function renderBaseCreatureStatistics(creatureId) {
@@ -60,27 +90,45 @@ function renderBaseCreatureStatistics(creatureId) {
 function openFormInfo(formId, activeSheet = false) {
   let formRecord = getFormRecord(formId);
   if (!formRecord) return;
-  const mods = conditionModifiers();
   let savingThrows = getFormSavingThrowRows(formRecord)
-    .map(([ability, value]) => `${ability} ${activeSheet ? savingThrowDisplay(ability, value, mods) : signedRoll(value)}`)
+    .map(([ability, value]) => `${ability} ${activeSheet ? savingThrowDisplay(ability, value) : signedRoll(value)}`)
     .join(" · ");
   const printedSkills = formRecord.sensesAndSkillsDescription || "";
   const skills = activeSheet
     ? [liveFormSkills(printedSkills, formRecord), additionalSkills(formRecord, printedSkills)].filter(Boolean).join(" · ")
     : printedSkills;
   elements.infoTitle.textContent = formRecord.name;
-  elements.infoBody.innerHTML = `<p><b>${getFormRuleset(formRecord)} · CR ${formRecord.challengeRating} · ${activeSheet ? liveSize() : formRecord.size}</b><br>Source: ${getFormSource(formRecord)}</p>${renderBaseCreatureStatistics(formRecord.baseCreatureId)}<p><b>Wild Shape · AC ${activeSheet ? liveAC() : formAC(formId)}</b> · ${activeSheet ? liveMovement() : Object.entries(
-    formRecord.speeds
-  )
-    .map(([speedName, speed]) => `${formatSpeedName(speedName)} ${speed} ft`)
-    .join(
-      " · "
-    )}</p>${activeSheet ? `<p>Initiative ${initiativeText()}${conditionHint(defenseDisplay())}</p>` : ""}<p>${savingThrows}</p>${skills ? `<p><b>Senses and skills</b><br>${skills}</p>` : ""}${formRecord.appearanceDescription ? `<p><b>Appearance</b><br>${formRecord.appearanceDescription}</p>` : ""}<p><b>Use</b><br>${formRecord.roleDescription}</p>${formRecord.traits.map((trait) => `<div class="attack"><b>${trait.name}</b> · ${trait.description}</div>`).join("")}${formRecord.actions.map((action) => `<div class="attack"><b>${action.name}</b> · ${activeSheet ? formActionText(action.name, action.description) : action.description}</div>`).join("")}${formRecord.bonusActions.map((action) => `<div class="attack"><b>${action.name} · Bonus Action</b> · ${activeSheet ? formActionText(action.name, action.description) : action.description}</div>`).join("")}`;
+  const speed = activeSheet ? liveMovement() : Object.entries(formRecord.speeds)
+    .map(([name, value]) => `${formatSpeedName(name)} ${value} ft`).join(" · ");
+  const ac = activeSheet ? liveAC() : formAC(formId);
+  const sections = [
+    ["Traits", formRecord.traits, trait => trait.description],
+    ["Actions", formRecord.actions, action => activeSheet ? formActionText(action.name, action.description) : action.description],
+    ["Bonus actions", formRecord.bonusActions, action => activeSheet ? formActionText(action.name, action.description) : action.description]
+  ];
+  const rules = sections.filter(([, entries]) => entries.length).map(([heading, entries, describe]) =>
+    `<section class="infoSection"><h3>${heading}</h3>${entries.map(entry =>
+      `<div class="attack"><b>${entry.name}</b><p>${describe(entry)}</p></div>`).join("")}</section>`
+  ).join("");
+  elements.infoBody.innerHTML = `
+    <p class="muted">${getFormRuleset(formRecord)} · CR ${formRecord.challengeRating} · ${activeSheet ? liveSize() : formRecord.size}</p>
+    <section class="infoSection">
+      <h3>Wild Shape</h3>
+      <p><b>AC ${ac}</b> · ${speed}</p>
+      ${activeSheet ? `<p>Initiative ${initiativeText()}${conditionHint(defenseDisplay())}</p>` : ""}
+      <p><b>Saving throws</b><br>${savingThrows}</p>
+      ${skills ? `<p><b>Senses and skills</b><br>${skills}</p>` : ""}
+    </section>
+    ${rules}
+    ${renderBaseCreatureStatistics(formRecord.baseCreatureId)}
+    ${formRecord.roleDescription ? `<p>${formRecord.roleDescription}</p>` : ""}
+    ${formRecord.appearanceDescription ? `<p>${formRecord.appearanceDescription}</p>` : ""}
+    <p class="muted">${getFormSource(formRecord)}</p>`;
   showInfo();
 }
 function showInfo() {
   if (!elements.infoModal.open) elements.infoModal.showModal();
-  elements.infoModal.scrollTop = 0;
+  elements.infoBody.scrollTop = 0;
   elements.closeInfo.focus();
 }
 
@@ -92,11 +140,10 @@ function openItemInfo(id) {
   body.replaceChildren();
   appendText(body, "p", itemSummary(item)).className = "muted";
 
+  const facts = appendText(body, "dl", "");
+  facts.className = "infoFacts";
   function field(label, value) {
-    if (value === undefined || value === null || value === "") return;
-    const row = appendText(body, "p", "");
-    appendText(row, "b", label);
-    row.append(" · " + value);
+    if (value !== undefined && value !== null && value !== "") appendInfoFact(facts, label, String(value));
   }
   const {armor, attunement, capacity, damage, price, range, source, weight} = item;
   if (typeof weight?.value === "number" && weight.units) field("Weight", weight.value + " " + weight.units);
@@ -147,6 +194,6 @@ function openItemInfo(id) {
   }
   const provenance = [source.rules && source.rules + " rules", source.custom, source.book,
     source.page && "page " + source.page, source.license, item.sourcePath];
-  field("Source", provenance.filter(Boolean).join(" · "));
+  appendInfoSource(body, provenance);
   showInfo();
 }

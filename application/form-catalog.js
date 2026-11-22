@@ -31,8 +31,8 @@ function buildWildShapeForms() {
 const WILD_SHAPE_FORMS = buildWildShapeForms();
 
 function getFormRuleset(form) {
-  if (form.rulesEdition === "2014") return "5e (2014)";
-  if (["2024", "2025"].includes(form.rulesEdition)) return "5.5e (revised)";
+  if (form.rulesEdition === "2014") return "5e";
+  if (["2024", "2025"].includes(form.rulesEdition)) return "5.5e";
   return "Unverified ruleset";
 }
 function getFormSource(form) {
@@ -52,6 +52,13 @@ function getFormIds() {
 }
 function formatSpeedName(speedName) {
   return speedName.charAt(0).toUpperCase() + speedName.slice(1);
+}
+function formDisplayName(form, peers) {
+  const sharedName = peers.filter(candidate => candidate.name === form.name);
+  if (sharedName.length < 2) return form.name;
+  const ruleset = getFormRuleset(form);
+  const sharedRuleset = sharedName.filter(candidate => getFormRuleset(candidate) === ruleset);
+  return `${form.name} · ${ruleset}${sharedRuleset.length > 1 ? " · " + getFormSource(form) : ""}`;
 }
 function getMaximumFormSpeed(formRecord) {
   return Math.max(...Object.values(formRecord.speeds || {}));
@@ -75,6 +82,7 @@ function getFormSavingThrowRows(formRecord) {
       ?? (Number.isFinite(beastScore) ? Math.floor((beastScore - 10) / 2) : undefined);
     if (Number.isFinite(beastSave)) save = Math.max(save, beastSave);
     if (formRecord && ability === "constitution") save += abilityModifier("wisdom");
+    if (!formRecord) save += protectionGear().length;
     return [shortName.toUpperCase(), save];
   });
 }

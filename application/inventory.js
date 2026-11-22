@@ -54,7 +54,7 @@ function inventoryRow(root, item, carried) {
   appendText(title, "b", item.name);
   const quantity = applicationState.inventory[item.id] || 0;
   const equipped = applicationState.equippedItemIds.includes(item.id);
-  const details = carried ? [`Qty ${quantity}`, equipped && "Equipped", itemSummary(item)] : [itemSummary(item)];
+  const details = carried ? [equipped && "Equipped", itemSummary(item)] : [itemSummary(item)];
   if (!carried) {
     if (quantity) details.push(`Owned ${quantity}`);
     if (itemSort.value.startsWith("price") && Number.isFinite(listedPrice(item)))
@@ -66,16 +66,38 @@ function inventoryRow(root, item, carried) {
   const controls = appendText(row, "div", "");
   controls.className = "row inventoryControls";
   const name = [item.name, itemParentName(item)].filter(Boolean).join(", ");
-  const info = collectionButton(controls, "ⓘ", name + " information", carried ? "carriedItemInfo" : "itemInfo", item.id);
+  const info = collectionButton(controls, "ⓘ", name + " details", carried ? "carriedItemInfo" : "itemInfo", item.id);
   info.className = "infoBtn";
   info.title = info.getAttribute("aria-label");
   if (carried) {
+    if (item.category === "potion") {
+      const verb = consumableVerb(item);
+      collectionButton(controls, verb, verb + " " + name, "useItem", item.id);
+    }
     if (canEquipItem(item)) {
       const label = equipped ? "Unequip" : "Equip";
       collectionButton(controls, label, label + " " + name, "toggleEquippedItem", item.id);
     }
-    if (quantity > 1) collectionButton(controls, "−", "Remove one " + name, "decreaseItem", item.id);
-    collectionButton(controls, "Remove", "Remove " + name + " from inventory", "removeItem", item.id);
+    if (item.attunement === "required") {
+      const attuned = applicationState.attunedItemIds.includes(item.id);
+      const button = collectionButton(controls, attuned ? "End attunement" : "Attune", "Attunement: " + name, "attuneItem", item.id);
+      button.disabled = !attuned && applicationState.attunedItemIds.length >= 3;
+      if (button.disabled) button.title = "Three attunement slots are in use";
+    }
+    if (item.id === venomDaggerId) {
+      const current = applicationState.venomDagger;
+      const label = {ready: "Coat blade", coated: "End coating", spent: "Recharge at dawn"}[current];
+      const button = collectionButton(controls, label, label + " · Dagger of Venom", "venomDagger",
+        {ready: "coated", coated: "spent", spent: "ready"}[current]);
+      button.disabled = current === "ready" && (!equipped || !!applicationState.activeFormId || conditionModifiers().incapacitated);
+      if (button.disabled) button.title = "Equip the dagger in Dragonborn form to coat it";
+    }
+    const quantityControls = appendText(controls, "div", "");
+    quantityControls.className = "itemQuantity";
+    appendText(quantityControls, "span", item.id === "VmcgAIsRCyrjBguC" ? `Doses ${quantity}` : `Qty ${quantity}`);
+    if (quantity > 1) collectionButton(quantityControls, "−", "Remove one " + name, "decreaseItem", item.id);
+    const removeLabel = quantity > 1 ? "Remove stack" : "Remove";
+    collectionButton(controls, removeLabel, `${removeLabel}: ${name} from inventory`, "removeItem", item.id);
   } else {
     collectionButton(controls, quantity ? "Add another" : "Add", "Add one " + name + " to inventory", "addItem", item.id);
   }
@@ -84,7 +106,17 @@ function inventoryRow(root, item, carried) {
 function renderCarriedItems() {
   carriedItemList.replaceChildren();
   const items = Object.keys(applicationState.inventory).map(id => itemById.get(id)).sort(itemNameOrder);
-  if (!items.length) appendText(carriedItemList, "p", "Your inventory is empty. Add items from the catalog.").className = "muted";
+  renderGoodberryInventory();
+  const uses = applicationState.otherConsumableUses;
+  if (uses.length) {
+    const details = appendText(carriedItemList, "details", "");
+    details.className = "collectionDetail";
+    appendText(details, "summary", "Uses on other targets");
+    const list = appendText(details, "ul", "");
+    for (const use of uses.slice().reverse()) appendText(list, "li",
+      `${itemById.get(use.id).name} ×${use.quantity} · ${use.target}${use.healing ? " · " + use.healing + " HP rolled" : ""}`);
+  }
+  if (!items.length && !applicationState.goodberryBatches.length) appendText(carriedItemList, "p", "Your inventory is empty. Add items from the catalog.").className = "muted";
   for (const item of items) inventoryRow(carriedItemList, item, true);
 }
 
@@ -145,7 +177,7 @@ for (const [button, direction] of [[previousItemPage, -1], [nextItemPage, 1]]) {
   };
 }
 
-function changeItemQuantity(id, delta) {
+function changeItemQuantity(id, delta, notice) {
   const item = itemById.get(id);
   const quantity = (applicationState.inventory[id] || 0) + delta;
   if (!item || quantity < 0 || !Number.isSafeInteger(quantity)) return;
@@ -153,9 +185,11 @@ function changeItemQuantity(id, delta) {
     if (quantity) applicationState.inventory[id] = quantity;
     else {
       delete applicationState.inventory[id];
+      if (applicationState.oiledWeaponId === id) applicationState.oiledWeaponId = null;
+      applicationState.attunedItemIds = applicationState.attunedItemIds.filter(itemId => itemId !== id);
       applicationState.equippedItemIds = applicationState.equippedItemIds.filter(equippedId => equippedId !== id);
     }
-  }, `${item.name} · ${quantity} carried.`);
+  }, notice || `${item.name} · ${quantity} carried.`);
 }
 
 function toggleItemEquipped(id) {
@@ -194,6 +228,9 @@ catalogUndo.onclick = () => {
 
 getElementById("inventoryManager").addEventListener("click", event => {
   const {carriedItemInfo, toggleEquippedItem, decreaseItem, removeItem} = event.target.dataset;
+  if (event.target.dataset.venomDagger) changeVenomDagger(event.target.dataset.venomDagger);
+  if (event.target.dataset.attuneItem) toggleAttunement(event.target.dataset.attuneItem);
+  if (event.target.dataset.useItem) openConsumable(event.target.dataset.useItem, event.target);
   if (carriedItemInfo) openItemInfo(carriedItemInfo);
   if (toggleEquippedItem) toggleItemEquipped(toggleEquippedItem);
   if (decreaseItem) {
@@ -209,3 +246,115 @@ getElementById("inventoryManager").addEventListener("click", event => {
     }
   }
 });
+
+let berryDetailsOpen = false;
+function renderGoodberryInventory() {
+  const batches = applicationState.goodberryBatches;
+  if (!batches.length) return;
+  const row = appendText(carriedItemList, "details", "");
+  row.className = "inventoryItem collectionDetail";
+  row.open = berryDetailsOpen;
+  row.ontoggle = () => { berryDetailsOpen = row.open; };
+  const count = batches.reduce((total, batch) => total + batch.remaining, 0);
+  appendText(row, "summary", "Goodberry · " + count);
+  appendText(row, "p", "Bonus Action to eat one. Each batch lasts 24 hours of game time.");
+  for (const [index, batch] of batches.entries()) {
+    const controls = appendText(row, "div", "");
+    controls.className = "row wrap inventoryControls";
+    controls.dataset.entry = "goodberry:" + batch.id;
+    appendText(controls, "span", "Batch " + (index + 1) + " · " + batch.remaining);
+    for (const [action, label] of [["eat", "Eat one"], ["give", "Give one"], ["expire", "Expire batch"]]) {
+      const button = appendText(controls, "button", label);
+      button.disabled = action === "eat" && !canEatGoodberry();
+      button.onclick = () => {
+        berryDetailsOpen = true;
+        useGoodberry(batch, action);
+        (carriedItemList.querySelector("details button") || openItemCatalog).focus();
+      };
+    }
+  }
+}
+
+function getInventoryActions() {
+  if (!applicationState.currentHitPoints || conditionModifiers().incapacitated) return [];
+  if (isGaseous()) return [{
+    id: "endGaseousFormBonus", context: "bonus", label: "End Gaseous Form",
+    activate: endGaseousForm
+  }];
+
+  const actions = [];
+  const batches = applicationState.goodberryBatches;
+  if (batches.length) actions.push({
+    id: "eatGoodberryBonus", context: "bonus", label: "Eat Goodberry",
+    hint: batches.reduce((total, batch) => total + batch.remaining, 0) + " left · +1 HP",
+    activate: () => useGoodberry(batches[0], "eat")
+  });
+
+  // Wild Shape's equipment access is adjudicated separately from the equipped humanoid loadout.
+  if (applicationState.activeFormId) return actions;
+  for (const [id, stock] of Object.entries(applicationState.inventory)) {
+    const use = consumableCombatUse(id);
+    if (!use) continue;
+    const item = itemById.get(id);
+    actions.push({
+      id: "combatUse-" + id, context: use.context, label: use.label || consumableVerb(item) + " " + item.name,
+      hint: stock + " left", dialog: true, activate: trigger => openConsumable(id, trigger, use.target)
+    });
+  }
+  for (const id of applicationState.equippedItemIds) {
+    const item = itemById.get(id);
+    const ammo = compatibleAmmunition(item);
+    if (!ammo.length) continue;
+    actions.push({
+      id: "shoot-" + id, context: "action", label: "Shoot " + item.name,
+      hint: ammo.reduce((total, record) => total + applicationState.inventory[record.id], 0) + " ammo",
+      dialog: true, activate: trigger => openAmmunitionUse(item, trigger)
+    });
+  }
+  if (gearActive(venomDaggerId) && applicationState.venomDagger === "ready") actions.push({
+    id: "coatVenomDaggerAction", context: "action", label: "Coat Dagger of Venom",
+    activate: () => changeVenomDagger("coated")
+  });
+  return actions.sort((a, b) => a.label.localeCompare(b.label));
+}
+function restoreInventoryActionFocus(trigger) {
+  const fallback = trigger.dataset.inventoryAction ? getElementById("actionsTab") :
+    trigger.dataset.useItem ? carriedItemList.querySelector('[data-use-item="' + trigger.dataset.useItem + '"]') || openItemCatalog : null;
+  (trigger.isConnected ? trigger : getElementById(trigger.id) || fallback)?.focus({preventScroll: true});
+}
+function renderInventoryActions() {
+  const groups = {action: elements.actions, bonus: elements.bonus, reaction: elements.reaction};
+  for (const action of getInventoryActions()) {
+    const row = appendText(groups[action.context], "div", "");
+    row.className = "choice row wrap";
+    const button = appendText(row, "button", action.label);
+    button.id = action.id;
+    button.type = "button";
+    button.dataset.inventoryAction = action.context;
+    if (action.dialog) button.setAttribute("aria-haspopup", "dialog");
+    if (action.hint) appendText(row, "small", action.hint);
+    button.onclick = () => {
+      if (!button.isConnected || !getInventoryActions().some(eligible => eligible.id === action.id)) return;
+      action.activate(button);
+      if (!action.dialog) restoreInventoryActionFocus(button);
+    };
+  }
+}
+
+function canEatGoodberry() {
+  return applicationState.currentHitPoints > 0 && !conditionModifiers().incapacitated && !isGaseous();
+}
+
+function useGoodberry(batch, action) {
+  if (!applicationState.goodberryBatches.includes(batch)) return;
+  if (action === "eat" && !canEatGoodberry()) return;
+  const recovered = action === "eat" && applicationState.currentHitPoints < currentMaxHP() ? 1 : 0;
+  change(() => {
+    applicationState.currentHitPoints += recovered;
+    if (action === "expire") batch.remaining = 0;
+    else batch.remaining--;
+    if (!batch.remaining) applicationState.goodberryBatches = applicationState.goodberryBatches.filter(item => item !== batch);
+  }, action === "eat" ? "Goodberry eaten. " + recovered + " HP regained." :
+    action === "give" ? "Goodberry given away." : "Goodberry batch expired.");
+}
+

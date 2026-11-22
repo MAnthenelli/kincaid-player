@@ -1,5 +1,8 @@
 function activeSpellText(name, level, effect) {
   const target = effect?.self ? "Kincaid" : "Target";
+  if (name === "Shield") return "+5 AC and protection from Magic Missile until the start of your next turn. End Shield then.";
+  const featSpell = getSpellRecord(name);
+  if (featSpell?.availability === "featSpell") return featSpell.description;
   if (name === "Guidance" && effect?.choice)
     return `${target} adds 1d4 to ${effect.choice} checks for up to 1 minute while the caster concentrates.`;
   if (name === "Aid")
@@ -24,22 +27,22 @@ function activeSpellText(name, level, effect) {
   level = level || SPELL_METADATA[name]?.[0] || 0;
   if (name === "Moonbeam") {
     let dice = 2 + Math.max(0, level - 2);
-    return `When the beam appears, moves into a creature’s space, a creature enters it, or a creature ends its turn there, that creature makes a DC ${spellSaveDC} CON save. It takes ${dice}d10 radiant damage on a failed save or half on a success. A creature saves only once per turn.`;
+    return `When the beam appears, moves into a creature’s space, a creature enters it, or a creature ends its turn there, that creature makes a DC ${spellSaveDC()} CON save. It takes ${dice}d10 radiant damage on a failed save or half on a success. A creature saves only once per turn.`;
   }
   if (name === "Conjure Animals") {
     let dice = 3 + Math.max(0, level - 3);
-    return `When the pack moves within 10 feet of a creature, or a creature enters or ends its turn within 10 feet of the pack, that creature makes a DC ${spellSaveDC} DEX save. It takes ${dice}d10 slashing damage on a failed save. A creature saves only once per turn.`;
+    return `When the pack moves within 10 feet of a creature, or a creature enters or ends its turn within 10 feet of the pack, that creature makes a DC ${spellSaveDC()} DEX save. It takes ${dice}d10 slashing damage on a failed save. A creature saves only once per turn.`;
   }
   if (name === "Entangle")
-    return `When the plants appear, targets in the area make a DC ${spellSaveDC} STR save. On a failure, a target is Restrained. It can use an Action to make a DC ${spellSaveDC} STR check, ending the condition on a success. The area is difficult terrain.`;
+    return `When the plants appear, targets in the area make a DC ${spellSaveDC()} STR save. On a failure, a target is Restrained. It can use an Action to make a DC ${spellSaveDC()} STR check, ending the condition on a success. The area is difficult terrain.`;
   if (name === "Faerie Fire")
-    return `When the spell appears, targets in the area make a DC ${spellSaveDC} DEX save. On a failure, a target is outlined: attacks against it have Advantage, and it cannot benefit from Invisible.`;
+    return `When the spell appears, targets in the area make a DC ${spellSaveDC()} DEX save. On a failure, a target is outlined: attacks against it have Advantage, and it cannot benefit from Invisible.`;
   if (name === "Spike Growth")
     return "When a creature moves through the area, it takes 2d4 piercing damage for every 5 feet it travels. The 20-foot-radius area is difficult terrain.";
   if (name === "Sleet Storm")
     return "While a creature is in the 40-foot-radius cylinder, the area is heavily obscured and difficult terrain. Creatures can fall Prone, and concentration can be disrupted.";
   if (name === "Wind Wall")
-    return `When the wall appears, targets in it make a DC ${spellSaveDC} STR save. They take 4d8 bludgeoning damage, halved on a successful save. The wall blocks many projectiles and gases.`;
+    return `When the wall appears, targets in it make a DC ${spellSaveDC()} STR save. They take 4d8 bludgeoning damage, halved on a successful save. The wall blocks many projectiles and gases.`;
   if (name === "Fog Cloud")
     return "While the spell lasts, the 20-foot-radius sphere is heavily obscured. Wind can disperse it.";
   if (name === "Pass without Trace")
@@ -52,7 +55,7 @@ function activeSpellText(name, level, effect) {
     return "While the spell lasts, the chosen point sheds bright light for 60 feet and dim light for another 60 feet.";
   if (name === "Plant Growth")
     return "In the overgrown area, every 1 foot of travel costs 4 feet unless that space was excluded from the spell.";
-  return SPELL_QUICK_TEXT[name] || "";
+  return (SPELL_QUICK_TEXT[name] || "").replaceAll("{spellSaveDC}", String(spellSaveDC())).replaceAll("{spellAttackBonus}", String(spellAttackBonus()));
 }
 // Expansion is a reading preference. Keep it across unrelated play-state changes.
 function effectEntry(key, label, expanded) {
@@ -73,19 +76,31 @@ function appendText(parent, tag, text) {
 function renderEffects(expanded) {
   elements.conc.replaceChildren();
   elements.effects.replaceChildren();
+  renderPendingCast(elements.conc);
+  renderConsumableEffects(expanded);
   for (const effect of applicationState.activeEffects) {
     const concentration = effect.n === applicationState.concentrationEffect;
-    const label = (concentration ? "Concentration · " : "") + effect.n;
+    const label = effect.n;
     const order = effect.order ?? "legacy";
     const key = "spell:" + effect.n + (effect.n === "Aid" ? ":" + order : "");
     const entry = effectEntry(key, label, expanded);
     const type = getEffectCategoryLabel(getEffectDefinition(effect.n));
     const summary = entry.querySelector("summary");
+    if (concentration) {
+      appendText(summary, "small", "Concentrating").className = "concentrationStatus";
+    }
     if (effect.self) appendText(summary, "small", effect.n === "Aid" ? "Kincaid · Level " + effect.level : "Kincaid");
     else if (SPELL_SELF_TARGET_MODES[effect.n] === "optional") appendText(summary, "small", "Other target");
-    if (effect.n === "Moonbeam") appendText(summary, "small", "DC " + spellSaveDC + " CON · " + (2 + Math.max(0, effect.level - 2)) + "d10 radiant");
+    if (effect.n === "Moonbeam") appendText(summary, "small", "DC " + spellSaveDC() + " CON · " + (2 + Math.max(0, effect.level - 2)) + "d10 radiant");
     appendText(entry, "small", [type, effect.level ? "Level " + effect.level : "", SPELL_METADATA[effect.n]?.[2]].filter(Boolean).join(" · "));
     appendText(entry, "p", activeSpellText(effect.n, effect.level, effect));
+    if (concentration) {
+      const form = getFormRecord(applicationState.activeFormId);
+      const [, modifier] = getFormSavingThrowRows(form).find(([ability]) => ability === "CON");
+      const save = appendText(entry, "p", "");
+      save.className = "concentrationRoll";
+      save.innerHTML = `<b>Save to maintain Concentration</b><span>CON ${rollDisplay(modifier, "concentration", "CON")}</span>`;
+    }
     const end = appendText(entry, "button", "End " + effect.n);
     end.dataset.end = effect.n;
     if (effect.n === "Aid") end.dataset.effectOrder = order;
